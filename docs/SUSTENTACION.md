@@ -171,3 +171,130 @@ Porque lo que se necesita es sacar siempre el más urgente. En el montículo, ve
 Con 1.000 cobros eso son unos 10 pasos. Ordenar la lista completa cada vez que llega un cobro costaría
 O(n log n). Además, como el orden lo da un `Comparator`, la misma clase sirve para la agenda (por fecha)
 y para la mora (por días de atraso, invertido), sin escribir dos estructuras.
+
+---
+
+## Hito 2: Dominio del rédito
+
+### Qué se construyó
+
+El corazón del negocio en Java puro (sin Spring, sin base de datos): un préstamo tipo **rédito** que
+genera sus cuotas de interés a medida que pasa el tiempo, recibe pagos, los reparte y se cierra cuando
+el capital llega a 0.
+
+| Clase | Paquete | Qué es |
+|---|---|---|
+| `Cuota` | `dominio.modelo` | Lo que se debe pagar en una fecha. Sabe cuánto le han cubierto y **calcula** su estado |
+| `EstadoCuota` | `dominio.modelo` | `CON_TIEMPO`, `PAGADA`, `PAGADA_CON_RETRASO`, `MORA` |
+| `BaseInteres` | `dominio.modelo` | `CAPITAL_INICIAL` (el interés nunca baja) o `CAPITAL_VIGENTE` (baja si se abona a capital) |
+| `Contrato` | `dominio.modelo` | Las condiciones: capital, tasa, base, fecha de desembolso, frecuencia. Todo `final`, sin setters |
+| `Prestamo` | `dominio.modelo` | Contrato + cronograma (`ListaDoble<Cuota>`) + pagos (`Pila<Pago>`) + capital pendiente |
+| `Pago` | `dominio.modelo` | Fecha, monto y cómo se repartió: `abonoACuotas` + `abonoACapital` |
+| `Frecuencia` | `dominio.politicas` | Interfaz (patrón **Strategy**): calcula la fecha de vencimiento de la cuota número N |
+| `FrecuenciaMensual` | `dominio.politicas` | Cobro mensual en un día fijo; si el mes no tiene ese día, el último día del mes |
+
+Pruebas: `CuotaTest` (9), `FrecuenciaMensualTest` (7), `PrestamoTest` (21). Total del proyecto: 82.
+
+### Cómo funciona el rédito, paso a paso
+
+1. **Cuota = base × tasa / 100**, redondeada al peso con `HALF_UP` (1.500,50 → 1.501; 37.037,01 → 37.037).
+   La base es el capital prestado (`CAPITAL_INICIAL`) o el capital pendiente en ese momento (`CAPITAL_VIGENTE`).
+2. **El cronograma crece solo**: al crear el préstamo nace la cuota 1. La siguiente nace **el día después**
+   de que vence la anterior. Siempre hay una sola cuota "actual": la última de la lista.
+3. **Los pagos son al préstamo**, no a una cuota. `registrarPago` reparte así:
+   cuotas vencidas (de la más vieja a la más nueva) → cuota actual → **lo que sobra va a capital**.
+4. **Cierre**: cuando el capital pendiente llega a 0, el préstamo se cierra, no genera más cuotas y no recibe pagos.
+
+### Decisiones importantes (y por qué)
+
+**¿Por qué la cuota siguiente nace el día *después* del vencimiento y no el mismo día?**
+Por el caso 2. El 10 de enero el cliente paga 660.000. Si la cuota de febrero ya existiera ese día:
+- el pago le daría 160.000 a esa cuota y solo 340.000 irían a capital (no 500.000);
+- con `CAPITAL_VIGENTE`, esa cuota ya se habría calculado con 2.000.000 y valdría 160.000, no 120.000.
+Generándola el 11 de enero, el abono a capital del 10 ya cuenta para el interés del siguiente periodo.
+Además encaja con `Cuota.estado`: el día del vencimiento la cuota todavía está `CON_TIEMPO`.
+
+**¿Por qué cada fecha se calcula desde el desembolso y no sumando un mes a la anterior?**
+Con cobro el día 30: si se sumara un mes a la anterior, 28 feb + 1 mes = 28 mar, y el préstamo quedaría
+cobrando el 28 para siempre. Calculando "mes del desembolso + N meses, día 30 o el último del mes",
+marzo vuelve al 30. Se usa `YearMonth` de `java.time` y su `lengthOfMonth()` (ya sabe de años bisiestos).
+
+**¿Por qué el estado de la cuota se calcula y no se guarda?**
+Porque depende del día en que se consulta: una cuota sin pagar pasa de `CON_TIEMPO` a `MORA` sola,
+al pasar la fecha. Si se guardara, habría que actualizarla todos los días y podría quedar desactualizada.
+Lo que sí se guarda es `fechaCubierta`, el día en que se completó, porque es un hecho que no cambia.
+
+**¿Por qué el "hoy" llega como parámetro?**
+`estado(hoy)`, `actualizarCronograma(hoy)` y `registrarPago(fecha, ...)` reciben la fecha. Así el dominio
+no depende del reloj del computador, las pruebas usan las fechas exactas de los casos, y en la demo se
+podrá simular otra fecha. El `Clock` de `America/Bogota` vivirá en la capa de aplicación.
+
+**¿Por qué se valida todo antes de repartir el pago?**
+Si un pago se rechazara a mitad del reparto, algunas cuotas ya estarían cubiertas y el préstamo quedaría
+inconsistente. Por eso primero se valida (préstamo abierto, monto > 0, fecha no anterior al desembolso ni
+al último pago, monto ≤ saldo total) y solo después se toca algo.
+
+**¿Por qué se rechazan pagos con fecha anterior al último pago?**
+Porque "un préstamo es su contrato más sus pagos en orden": aplicar los mismos pagos en el mismo orden
+debe dar siempre el mismo estado. Eso es lo que permitirá **deshacer** en el hito 3: sacar el último pago
+de la pila y volver a aplicar los demás desde el contrato.
+
+**Dinero con `BigDecimal` y `compareTo`.** `double` no representa exactamente valores como 0,1, y en dinero
+eso produce errores de centavos. Para comparar montos se usa `compareTo`, no `equals`, porque `equals`
+también compara la escala: `160000` y `160000.00` son distintos para `equals` e iguales para `compareTo`.
+
+### Estructuras de datos en este hito
+
+| Dónde | Estructura | Por qué |
+|---|---|---|
+| `Prestamo.cronograma` | `ListaDoble<Cuota>` | Crece por el final una cuota a la vez (`agregarAlFinal`, O(1)); se lee la última cuota para saber si ya venció (`ultimo`, O(1)); se recorre en orden para repartir pagos |
+| `Prestamo.pagos` | `Pila<Pago>` | El último pago es el que se deshace (LIFO); `verTope` da la fecha del último pago para validar el orden, en O(1) |
+
+### Complejidad de las operaciones del préstamo
+
+Siendo *n* el número de cuotas del cronograma y *k* las cuotas nuevas que hay que generar:
+
+| Operación | Complejidad | Por qué |
+|---|---|---|
+| `Frecuencia.fechaVencimiento` | O(1) | cálculo directo con `YearMonth`, sin recorrer meses |
+| `actualizarCronograma(hoy)` | O(k) | cada cuota nueva es un `ultimo()` y un `agregarAlFinal()`, ambos O(1) |
+| `saldoTotal()` | O(n) | suma el saldo de todas las cuotas |
+| `registrarPago` | O(n + k) | actualiza el cronograma, calcula el saldo y recorre las cuotas una vez |
+| `estaCerrado()` | O(1) | compara el capital con 0 |
+| `Cuota.estado`, `Cuota.cubrir` | O(1) | comparaciones y una suma |
+
+En un rédito de máximo 24 meses, *n* ≤ 24 con frecuencia mensual: recorrer el cronograma es inmediato.
+
+### Casos de prueba obligatorios y dónde se verifican
+
+| Caso | Qué se comprueba | Prueba |
+|---|---|---|
+| 1 | 2.000.000 al 8 %: cuotas 10 dic, 10 ene, 10 feb, 10 mar de 160.000 | `PrestamoTest.caso1CuatroCuotasDe160000LosDias10` |
+| 2 | Paga 660.000 el 10 ene: 160.000 a cuota y 500.000 a capital; con base inicial siguen en 160.000, con base vigente bajan a 120.000 | `PrestamoTest.caso2...` (3 pruebas) |
+| 3 | Paga 100.000 el 10 feb: quedan 60.000 pendientes y la cuota pasa a `MORA` el 11 feb | `PrestamoTest.caso3...` |
+| 4 | 8.000.000 al 5 %, cobro día 30: cuota de 400.000, febrero vence el 28 | `PrestamoTest.caso4...` y `FrecuenciaMensualTest` |
+| 5 | Estados de la cuota de 160.000 que vence el 10 feb | `CuotaTest` (4 pruebas del caso 5) |
+
+### Preguntas que podría hacer el profesor
+
+**1. Si el cliente paga más de lo que debe en cuotas, ¿qué pasa con el excedente, y cómo afecta las cuotas siguientes?**
+
+El préstamo recorre el cronograma de la cuota más vieja a la actual y a cada una le da lo que le falte,
+sin pasarse (`restante.min(saldoPendiente)`). Lo que sobra al final baja el capital pendiente. Si la base
+es `CAPITAL_INICIAL`, las cuotas siguientes no cambian, porque siempre se calculan sobre el capital prestado.
+Si es `CAPITAL_VIGENTE`, la siguiente cuota que nazca se calcula sobre el capital nuevo y por eso baja:
+en el caso 2, de 160.000 a 120.000 (1.500.000 × 8 %). Las cuotas que ya existían no se recalculan.
+
+**2. ¿Por qué el cronograma es una lista doble y no se genera completo al crear el préstamo?**
+
+Porque en el rédito no se sabe cuántas cuotas habrá ni cuánto valdrán: depende de cuándo y cuánto abone
+el cliente a capital. Con `CAPITAL_VIGENTE`, el valor de cada cuota se conoce recién cuando nace. Por eso
+el cronograma crece una cuota a la vez por el final. La lista doble lo hace en O(1) con `agregarAlFinal`,
+y con `ultimo()` se consulta en O(1) si la última cuota ya venció para generar la siguiente.
+
+**3. ¿Qué pasa con el estado de una cuota que se pagó a tiempo, si la consulto un mes después?**
+
+Sigue saliendo `PAGADA`. El estado de una cuota cubierta se decide comparando `fechaCubierta` (el día en
+que se completó, guardado al momento del pago) con su fecha de vencimiento, no con la fecha de consulta.
+Solo las cuotas **sin cubrir** comparan el "hoy" con el vencimiento: hasta ese día están `CON_TIEMPO` y
+desde el día siguiente en `MORA`. Hay una prueba exactamente para esto en `CuotaTest`.
