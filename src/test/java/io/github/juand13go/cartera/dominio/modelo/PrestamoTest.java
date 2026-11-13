@@ -2,6 +2,7 @@ package io.github.juand13go.cartera.dominio.modelo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -90,6 +91,145 @@ class PrestamoTest {
         assertEquals(pesos("400000"), prestamo.getCronograma().primero().getValor());
         assertEquals(LocalDate.of(2027, 2, 28), prestamo.getCronograma().obtener(2).getFechaVencimiento());
         assertEquals(LocalDate.of(2027, 3, 30), prestamo.getCronograma().ultimo().getFechaVencimiento());
+    }
+
+    // Caso 2
+
+    /** Caso 2: paga la cuota del 10 dic y el 10 ene paga 660.000. */
+    private static Prestamo prestamoCaso2(BaseInteres base) {
+        Prestamo prestamo = prestamoCaso1(base);
+        prestamo.registrarPago(LocalDate.of(2026, 12, 10), pesos("160000"));
+        prestamo.registrarPago(LocalDate.of(2027, 1, 10), pesos("660000"));
+        return prestamo;
+    }
+
+    @Test
+    void caso2ElPagoDe660000Va160000ACuotasY500000ACapital() {
+        Prestamo prestamo = prestamoCaso1(BaseInteres.CAPITAL_INICIAL);
+        prestamo.registrarPago(LocalDate.of(2026, 12, 10), pesos("160000"));
+
+        Pago pago = prestamo.registrarPago(LocalDate.of(2027, 1, 10), pesos("660000"));
+
+        assertEquals(pesos("160000"), pago.getAbonoACuotas());
+        assertEquals(pesos("500000"), pago.getAbonoACapital());
+        assertEquals(pesos("1500000"), prestamo.getCapitalPendiente());
+    }
+
+    @Test
+    void caso2ConCapitalInicialLasCuotasSiguientesSiguenEn160000() {
+        Prestamo prestamo = prestamoCaso2(BaseInteres.CAPITAL_INICIAL);
+
+        prestamo.actualizarCronograma(LocalDate.of(2027, 2, 11));
+
+        assertEquals(pesos("160000"), prestamo.getCronograma().obtener(2).getValor());
+        assertEquals(pesos("160000"), prestamo.getCronograma().obtener(3).getValor());
+        assertEquals(pesos("1500000"), prestamo.getCapitalPendiente());
+    }
+
+    @Test
+    void caso2ConCapitalVigenteLasCuotasSiguientesBajanA120000() {
+        Prestamo prestamo = prestamoCaso2(BaseInteres.CAPITAL_VIGENTE);
+
+        prestamo.actualizarCronograma(LocalDate.of(2027, 2, 11));
+
+        assertEquals(pesos("160000"), prestamo.getCronograma().obtener(1).getValor());
+        assertEquals(pesos("120000"), prestamo.getCronograma().obtener(2).getValor());
+        assertEquals(pesos("120000"), prestamo.getCronograma().obtener(3).getValor());
+    }
+
+    // Caso 3
+
+    @Test
+    void caso3UnPagoDe100000DejaLaCuotaConSaldoYEnMoraDespuesDelVencimiento() {
+        Prestamo prestamo = prestamoCaso2(BaseInteres.CAPITAL_INICIAL);
+
+        Pago pago = prestamo.registrarPago(LocalDate.of(2027, 2, 10), pesos("100000"));
+
+        Cuota febrero = prestamo.getCronograma().obtener(2);
+        assertEquals(LocalDate.of(2027, 2, 10), febrero.getFechaVencimiento());
+        assertEquals(pesos("60000"), febrero.saldoPendiente());
+        assertEquals(EstadoCuota.CON_TIEMPO, febrero.estado(LocalDate.of(2027, 2, 10)));
+        assertEquals(EstadoCuota.MORA, febrero.estado(LocalDate.of(2027, 2, 11)));
+        // Nada fue a capital.
+        assertEquals(pesos("0"), pago.getAbonoACapital());
+        assertEquals(pesos("1500000"), prestamo.getCapitalPendiente());
+    }
+
+    // Imputación
+
+    @Test
+    void elPagoCubreLasVencidasDeLaMasViejaALaMasNuevaYLuegoLaActual() {
+        Prestamo prestamo = prestamoCaso1(BaseInteres.CAPITAL_INICIAL);
+
+        // El 15 ene están vencidas las del 10 dic y 10 ene, y la actual es la del 10 feb.
+        Pago pago = prestamo.registrarPago(LocalDate.of(2027, 1, 15), pesos("400000"));
+
+        assertTrue(prestamo.getCronograma().obtener(0).estaCubierta());
+        assertTrue(prestamo.getCronograma().obtener(1).estaCubierta());
+        assertEquals(pesos("80000"), prestamo.getCronograma().obtener(2).getValorCubierto());
+        assertEquals(pesos("400000"), pago.getAbonoACuotas());
+        assertEquals(pesos("2000000"), prestamo.getCapitalPendiente());
+    }
+
+    @Test
+    void losPagosQuedanEnLaPilaConElUltimoArriba() {
+        Prestamo prestamo = prestamoCaso2(BaseInteres.CAPITAL_INICIAL);
+
+        assertEquals(2, prestamo.getPagos().tamano());
+        assertEquals(LocalDate.of(2027, 1, 10), prestamo.getPagos().verTope().getFecha());
+    }
+
+    // Cierre
+
+    @Test
+    void alPagarTodoElPrestamoSeCierraYNoGeneraMasCuotas() {
+        Prestamo prestamo = prestamoCaso1(BaseInteres.CAPITAL_INICIAL);
+        assertEquals(pesos("2160000"), prestamo.saldoTotal());
+
+        prestamo.registrarPago(LocalDate.of(2026, 12, 10), pesos("2160000"));
+
+        assertTrue(prestamo.estaCerrado());
+        assertEquals(pesos("0"), prestamo.saldoTotal());
+        prestamo.actualizarCronograma(LocalDate.of(2027, 3, 1));
+        assertEquals(1, prestamo.getCronograma().tamano());
+    }
+
+    @Test
+    void unPrestamoCerradoNoRecibePagos() {
+        Prestamo prestamo = prestamoCaso1(BaseInteres.CAPITAL_INICIAL);
+        prestamo.registrarPago(LocalDate.of(2026, 12, 10), pesos("2160000"));
+
+        assertThrows(IllegalStateException.class,
+                () -> prestamo.registrarPago(LocalDate.of(2026, 12, 11), pesos("1000")));
+    }
+
+    @Test
+    void unPagoMayorQueLaDeudaSeRechazaSinCambiarNada() {
+        Prestamo prestamo = prestamoCaso1(BaseInteres.CAPITAL_INICIAL);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> prestamo.registrarPago(LocalDate.of(2026, 12, 10), pesos("2160001")));
+        assertEquals(pesos("2000000"), prestamo.getCapitalPendiente());
+        assertEquals(pesos("0"), prestamo.getCronograma().primero().getValorCubierto());
+        assertTrue(prestamo.getPagos().estaVacia());
+    }
+
+    @Test
+    void unPagoConFechaAnteriorAlUltimoPagoSeRechaza() {
+        Prestamo prestamo = prestamoCaso2(BaseInteres.CAPITAL_INICIAL);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> prestamo.registrarPago(LocalDate.of(2027, 1, 9), pesos("1000")));
+    }
+
+    @Test
+    void unPagoAntesDelDesembolsoOConMontoNoPositivoSeRechaza() {
+        Prestamo prestamo = prestamoCaso1(BaseInteres.CAPITAL_INICIAL);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> prestamo.registrarPago(LocalDate.of(2026, 11, 9), pesos("1000")));
+        assertThrows(IllegalArgumentException.class,
+                () -> prestamo.registrarPago(LocalDate.of(2026, 12, 1), BigDecimal.ZERO));
     }
 
     // Redondeo
