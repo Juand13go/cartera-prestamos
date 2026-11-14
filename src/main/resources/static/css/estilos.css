@@ -114,7 +114,10 @@ section {
 /* Fecha simulada en la demo: recuadro blanco con borde discontinuo para que nadie la confunda con la real. */
 .menu .hoy.simulada { background: var(--superficie); color: var(--texto); border: 1px dashed var(--texto); padding: 2px 10px; border-radius: 6px; }
 .menu .salir { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; }
-.menu .salir button { color: #fff; border-color: #fff; padding: 4px 10px; }
+/* Salir: botón con borde blanco sobre la barra negra; al pasar el mouse se invierte. */
+.menu .salir button { background: transparent; color: #fff; border: 1px solid #fff; padding: 4px 10px; }
+.menu .salir button:hover { background: #fff; color: var(--texto); border-color: #fff; }
+.menu .salir button:focus-visible, .menu a:focus-visible { outline-color: #fff; }   /* el contorno negro no se vería sobre la barra */
 
 /* ---------- Tarjetas de resumen: la plata, lo primero que se ve ---------- */
 .resumen {
