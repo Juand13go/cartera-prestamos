@@ -7,7 +7,7 @@
     <!-- Un solo formulario: el sistema deduce si es el prestamista o un cliente a partir de la cuenta. -->
     <section class="entrar">
         <h1 class="marca-grande">Libreta</h1>
-        <p class="subtitulo">cartera de préstamos</p>
+        <p class="subtitulo">Cartera de préstamos</p>
         <div th:replace="~{fragmentos :: mensajes}"></div>
         <p class="nota">Clientes: su cédula y su PIN. Prestamista: su usuario y su contraseña.</p>
         <form class="formulario" th:action="@{/login}" method="post">
