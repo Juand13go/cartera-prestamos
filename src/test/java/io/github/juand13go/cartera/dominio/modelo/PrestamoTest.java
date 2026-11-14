@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Test;
 
 import io.github.juand13go.cartera.dominio.politicas.Calendario;
 import io.github.juand13go.cartera.dominio.politicas.FrecuenciaMensual;
+import io.github.juand13go.cartera.dominio.politicas.MultaFijaDiaria;
+import io.github.juand13go.cartera.dominio.politicas.OrdenImputacion;
 
 class PrestamoTest {
 
@@ -207,17 +209,104 @@ class PrestamoTest {
         assertEquals(LocalDate.of(2027, 1, 10), prestamo.getPagos().verTope().getFecha());
     }
 
+    // Multas e imputación: caso 1 con multa fija de $2.000 diarios y 2 días de gracia.
+    // Si no paga el 10 dic, el 15 dic la cuota 1 lleva 5 días de atraso − 2 de gracia = 3 días → $6.000.
+
+    private static Prestamo prestamoConMulta(OrdenImputacion orden) {
+        Contrato contrato = Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO_CASO_1)
+                .mora(new MultaFijaDiaria(pesos("2000")))
+                .ordenImputacion(orden)
+                .firmar();
+        return new Prestamo("1006", contrato);
+    }
+
+    @Test
+    void elSaldoTotalIncluyeLasMultas() {
+        Prestamo prestamo = prestamoConMulta(OrdenImputacion.MULTAS_PRIMERO);
+        LocalDate quinceDic = LocalDate.of(2026, 12, 15);
+        prestamo.actualizarCronograma(quinceDic);
+
+        assertEquals(pesos("6000"), prestamo.saldoMulta(prestamo.getCronograma().primero(), quinceDic));
+        // 2.000.000 de capital + 160.000 + 160.000 de cuotas + 6.000 de multa.
+        assertEquals(pesos("2326000"), prestamo.saldoTotal(quinceDic));
+    }
+
+    @Test
+    void multasPrimeroPagaLaMultaAntesQueLasCuotas() {
+        Prestamo prestamo = prestamoConMulta(OrdenImputacion.MULTAS_PRIMERO);
+
+        Pago pago = prestamo.registrarPago(LocalDate.of(2026, 12, 15), pesos("170000"));
+
+        assertEquals(pesos("6000"), pago.getAbonoAMultas());
+        assertEquals(pesos("164000"), pago.getAbonoACuotas());
+        assertEquals(pesos("0"), pago.getAbonoACapital());
+        assertTrue(prestamo.getCronograma().obtener(0).estaCubierta());
+        assertEquals(pesos("4000"), prestamo.getCronograma().obtener(1).getValorCubierto());
+    }
+
+    @Test
+    void cuotasPrimeroPagaLasCuotasYDejaLaMultaPendiente() {
+        Prestamo prestamo = prestamoConMulta(OrdenImputacion.CUOTAS_PRIMERO);
+
+        Pago pago = prestamo.registrarPago(LocalDate.of(2026, 12, 15), pesos("170000"));
+
+        assertEquals(pesos("0"), pago.getAbonoAMultas());
+        assertEquals(pesos("170000"), pago.getAbonoACuotas());
+        assertEquals(pesos("10000"), prestamo.getCronograma().obtener(1).getValorCubierto());
+        // La cuota 1 quedó cubierta el 15 dic: su multa se congela en 6.000 y sigue pendiente.
+        Cuota primera = prestamo.getCronograma().primero();
+        assertEquals(pesos("6000"), prestamo.saldoMulta(primera, LocalDate.of(2027, 1, 1)));
+    }
+
+    @Test
+    void cuotasPrimeroPagaLasMultasAntesQueElCapital() {
+        Prestamo prestamo = prestamoConMulta(OrdenImputacion.CUOTAS_PRIMERO);
+
+        Pago pago = prestamo.registrarPago(LocalDate.of(2026, 12, 15), pesos("2326000"));
+
+        assertEquals(pesos("320000"), pago.getAbonoACuotas());
+        assertEquals(pesos("6000"), pago.getAbonoAMultas());
+        assertEquals(pesos("2000000"), pago.getAbonoACapital());
+        assertTrue(prestamo.estaCerrado());
+    }
+
+    @Test
+    void unAbonoParcialALaMultaSeDescuentaPeroLaMultaSigueCreciendo() {
+        Prestamo prestamo = prestamoConMulta(OrdenImputacion.MULTAS_PRIMERO);
+
+        prestamo.registrarPago(LocalDate.of(2026, 12, 15), pesos("4000"));
+
+        Cuota primera = prestamo.getCronograma().primero();
+        assertEquals(pesos("4000"), primera.getMultaPagada());
+        assertEquals(pesos("2000"), prestamo.saldoMulta(primera, LocalDate.of(2026, 12, 15)));
+        // Al día siguiente la multa total ya es 8.000 (4 días); faltan 4.000.
+        assertEquals(pesos("4000"), prestamo.saldoMulta(primera, LocalDate.of(2026, 12, 16)));
+    }
+
+    @Test
+    void lasMultasSePaganDeLaMasViejaALaMasNueva() {
+        Prestamo prestamo = prestamoConMulta(OrdenImputacion.MULTAS_PRIMERO);
+
+        // El 15 ene: cuota 1 con 36 días de atraso (34 con multa → 68.000)
+        // y cuota 2 con 5 días (3 con multa → 6.000).
+        Pago pago = prestamo.registrarPago(LocalDate.of(2027, 1, 15), pesos("70000"));
+
+        assertEquals(pesos("70000"), pago.getAbonoAMultas());
+        assertEquals(pesos("68000"), prestamo.getCronograma().obtener(0).getMultaPagada());
+        assertEquals(pesos("2000"), prestamo.getCronograma().obtener(1).getMultaPagada());
+    }
+
     // Cierre
 
     @Test
     void alPagarTodoElPrestamoSeCierraYNoGeneraMasCuotas() {
         Prestamo prestamo = prestamoCaso1(BaseInteres.CAPITAL_INICIAL);
-        assertEquals(pesos("2160000"), prestamo.saldoTotal());
+        assertEquals(pesos("2160000"), prestamo.saldoTotal(LocalDate.of(2026, 12, 10)));
 
         prestamo.registrarPago(LocalDate.of(2026, 12, 10), pesos("2160000"));
 
         assertTrue(prestamo.estaCerrado());
-        assertEquals(pesos("0"), prestamo.saldoTotal());
+        assertEquals(pesos("0"), prestamo.saldoTotal(LocalDate.of(2026, 12, 10)));
         prestamo.actualizarCronograma(LocalDate.of(2027, 3, 1));
         assertEquals(1, prestamo.getCronograma().tamano());
     }

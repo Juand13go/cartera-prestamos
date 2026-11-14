@@ -6,6 +6,7 @@ import java.time.LocalDate;
 
 import io.github.juand13go.cartera.dominio.estructuras.ListaDoble;
 import io.github.juand13go.cartera.dominio.estructuras.Pila;
+import io.github.juand13go.cartera.dominio.politicas.OrdenImputacion;
 
 /**
  * Un préstamo tipo rédito: cada periodo genera una cuota de interés y el capital
@@ -15,8 +16,9 @@ import io.github.juand13go.cartera.dominio.estructuras.Pila;
  * Siempre hay una sola cuota "actual" (la última de la lista); la siguiente nace
  * el día después de que esa vence.
  *
- * Los pagos son al préstamo, no a una cuota: el préstamo los reparte.
- * Cuando el capital pendiente llega a 0, el préstamo queda cerrado.
+ * Los pagos son al préstamo, no a una cuota: el préstamo los reparte entre multas,
+ * cuotas y capital, en el orden que diga el contrato. El capital siempre va de último,
+ * así que cuando llega a 0 ya no se debe nada y el préstamo queda cerrado.
  */
 public class Prestamo {
     private static final BigDecimal CIEN = new BigDecimal("100");
@@ -68,11 +70,20 @@ public class Prestamo {
         return capitalPendiente.compareTo(BigDecimal.ZERO) == 0;
     }
 
-    /** Todo lo que se debe con el cronograma actual: lo pendiente de las cuotas más el capital. */
-    public BigDecimal saldoTotal() {
+    /** Lo que falta pagar de la multa de una cuota a la fecha {@code hoy}. */
+    public BigDecimal saldoMulta(Cuota cuota, LocalDate hoy) {
+        BigDecimal falta = contrato.multa(cuota, hoy).subtract(cuota.getMultaPagada());
+        return falta.max(BigDecimal.ZERO);
+    }
+
+    /**
+     * Todo lo que se debe a la fecha {@code hoy} con el cronograma actual:
+     * multas pendientes + lo pendiente de las cuotas + capital.
+     */
+    public BigDecimal saldoTotal(LocalDate hoy) {
         BigDecimal total = capitalPendiente;
         for (Cuota cuota : cronograma) {
-            total = total.add(cuota.saldoPendiente());
+            total = total.add(cuota.saldoPendiente()).add(saldoMulta(cuota, hoy));
         }
         return total;
     }
@@ -88,36 +99,79 @@ public class Prestamo {
     }
 
     /**
-     * Registra un pago y lo reparte en este orden:
-     * cuotas vencidas (de la más vieja a la más nueva) → cuota actual → capital.
-     * Como el cronograma está en orden y la cuota actual es la última, basta recorrerlo de principio a fin.
+     * Registra un pago y lo reparte según el orden de imputación del contrato:
+     * - MULTAS_PRIMERO: multas → cuotas vencidas → cuota actual → capital;
+     * - CUOTAS_PRIMERO: cuotas vencidas → cuota actual → multas → capital.
+     * Lo que sobra después de multas y cuotas va a capital.
      */
     public Pago registrarPago(LocalDate fecha, BigDecimal monto) {
         validarPago(fecha, monto);
         actualizarCronograma(fecha);
-        if (monto.compareTo(saldoTotal()) > 0) {
-            throw new IllegalArgumentException("El pago supera todo lo que se debe: " + saldoTotal());
+        BigDecimal deuda = saldoTotal(fecha);
+        if (monto.compareTo(deuda) > 0) {
+            throw new IllegalArgumentException("El pago supera todo lo que se debe: " + deuda);
         }
 
         BigDecimal restante = monto;
-        BigDecimal abonoACuotas = BigDecimal.ZERO;
+        BigDecimal abonoAMultas;
+        BigDecimal abonoACuotas;
+        if (contrato.getOrdenImputacion() == OrdenImputacion.MULTAS_PRIMERO) {
+            abonoAMultas = pagarMultas(fecha, restante);
+            restante = restante.subtract(abonoAMultas);
+            abonoACuotas = pagarCuotas(fecha, restante);
+            restante = restante.subtract(abonoACuotas);
+        } else {
+            abonoACuotas = pagarCuotas(fecha, restante);
+            restante = restante.subtract(abonoACuotas);
+            abonoAMultas = pagarMultas(fecha, restante);
+            restante = restante.subtract(abonoAMultas);
+        }
+        capitalPendiente = capitalPendiente.subtract(restante);
+
+        Pago pago = new Pago(fecha, monto, abonoAMultas, abonoACuotas, restante);
+        pagos.apilar(pago);
+        return pago;
+    }
+
+    /**
+     * Reparte hasta {@code disponible} entre las cuotas pendientes, de la más vieja a la más nueva.
+     * Como el cronograma está en orden y la cuota actual es la última, basta recorrerlo de principio a fin.
+     * Devuelve cuánto usó.
+     */
+    private BigDecimal pagarCuotas(LocalDate fecha, BigDecimal disponible) {
+        BigDecimal usado = BigDecimal.ZERO;
         for (Cuota cuota : cronograma) {
-            if (restante.compareTo(BigDecimal.ZERO) == 0) {
+            BigDecimal queda = disponible.subtract(usado);
+            if (queda.compareTo(BigDecimal.ZERO) == 0) {
                 break;
             }
             if (cuota.estaCubierta()) {
                 continue;
             }
-            BigDecimal abono = restante.min(cuota.saldoPendiente());
+            BigDecimal abono = queda.min(cuota.saldoPendiente());
             cuota.cubrir(abono, fecha);
-            abonoACuotas = abonoACuotas.add(abono);
-            restante = restante.subtract(abono);
+            usado = usado.add(abono);
         }
-        capitalPendiente = capitalPendiente.subtract(restante);
+        return usado;
+    }
 
-        Pago pago = new Pago(fecha, monto, abonoACuotas, restante);
-        pagos.apilar(pago);
-        return pago;
+    /** Reparte hasta {@code disponible} entre las multas pendientes, de la más vieja a la más nueva. Devuelve cuánto usó. */
+    private BigDecimal pagarMultas(LocalDate fecha, BigDecimal disponible) {
+        BigDecimal usado = BigDecimal.ZERO;
+        for (Cuota cuota : cronograma) {
+            BigDecimal queda = disponible.subtract(usado);
+            if (queda.compareTo(BigDecimal.ZERO) == 0) {
+                break;
+            }
+            BigDecimal falta = saldoMulta(cuota, fecha);
+            if (falta.compareTo(BigDecimal.ZERO) == 0) {
+                continue;
+            }
+            BigDecimal abono = queda.min(falta);
+            cuota.abonarMulta(abono);
+            usado = usado.add(abono);
+        }
+        return usado;
     }
 
     private void validarPago(LocalDate fecha, BigDecimal monto) {

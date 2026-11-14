@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import io.github.juand13go.cartera.dominio.politicas.Calendario;
 import io.github.juand13go.cartera.dominio.politicas.Frecuencia;
 import io.github.juand13go.cartera.dominio.politicas.FrecuenciaMensual;
+import io.github.juand13go.cartera.dominio.politicas.OrdenImputacion;
 import io.github.juand13go.cartera.dominio.politicas.PoliticaMora;
 import io.github.juand13go.cartera.dominio.politicas.SinMulta;
 
@@ -30,6 +31,7 @@ public class Contrato {
     private final Calendario calendario;
     private final PoliticaMora politicaMora;
     private final int diasDeGracia;
+    private final OrdenImputacion ordenImputacion;
 
     /**
      * Empieza un borrador con lo que no tiene valor por defecto.
@@ -51,7 +53,8 @@ public class Contrato {
             throw new IllegalArgumentException("La tasa debe ser mayor que cero");
         }
         if (borrador.baseInteres == null || borrador.fechaDesembolso == null || borrador.frecuencia == null
-                || borrador.calendario == null || borrador.politicaMora == null) {
+                || borrador.calendario == null || borrador.politicaMora == null
+                || borrador.ordenImputacion == null) {
             throw new IllegalArgumentException("Faltan condiciones del contrato");
         }
         if (borrador.diasDeGracia < 0) {
@@ -65,6 +68,7 @@ public class Contrato {
         this.calendario = borrador.calendario;
         this.politicaMora = borrador.politicaMora;
         this.diasDeGracia = borrador.diasDeGracia;
+        this.ordenImputacion = borrador.ordenImputacion;
     }
 
     public BigDecimal getCapital() {
@@ -99,6 +103,10 @@ public class Contrato {
         return diasDeGracia;
     }
 
+    public OrdenImputacion getOrdenImputacion() {
+        return ordenImputacion;
+    }
+
     /** Fecha en que vence la cuota número {@code numeroCuota}: la de la frecuencia, ajustada al calendario. */
     public LocalDate fechaVencimiento(int numeroCuota) {
         return calendario.ajustar(frecuencia.fechaVencimiento(fechaDesembolso, numeroCuota));
@@ -127,6 +135,7 @@ public class Contrato {
         private Calendario calendario = Calendario.TODOS_LOS_DIAS;
         private PoliticaMora politicaMora = new SinMulta();
         private int diasDeGracia = 2;
+        private OrdenImputacion ordenImputacion = OrdenImputacion.MULTAS_PRIMERO;
 
         private Borrador(BigDecimal capital, BigDecimal tasaPorPeriodo, LocalDate fechaDesembolso) {
             this.capital = capital;
@@ -160,6 +169,11 @@ public class Contrato {
 
         public Borrador diasDeGracia(int diasDeGracia) {
             this.diasDeGracia = diasDeGracia;
+            return this;
+        }
+
+        public Borrador ordenImputacion(OrdenImputacion ordenImputacion) {
+            this.ordenImputacion = ordenImputacion;
             return this;
         }
 

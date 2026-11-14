@@ -16,6 +16,7 @@ import io.github.juand13go.cartera.dominio.politicas.Frecuencia;
 import io.github.juand13go.cartera.dominio.politicas.FrecuenciaMensual;
 import io.github.juand13go.cartera.dominio.politicas.FrecuenciaSemanal;
 import io.github.juand13go.cartera.dominio.politicas.MultaFijaDiaria;
+import io.github.juand13go.cartera.dominio.politicas.OrdenImputacion;
 import io.github.juand13go.cartera.dominio.politicas.PoliticaMora;
 import io.github.juand13go.cartera.dominio.politicas.PorcentajeDiario;
 import io.github.juand13go.cartera.dominio.politicas.PorcentajeUnico;
@@ -40,6 +41,7 @@ class ContratoTest {
         assertEquals(Calendario.TODOS_LOS_DIAS, contrato.getCalendario());
         assertTrue(contrato.getPoliticaMora() instanceof SinMulta);
         assertEquals(2, contrato.getDiasDeGracia());
+        assertEquals(OrdenImputacion.MULTAS_PRIMERO, contrato.getOrdenImputacion());
     }
 
     @Test
@@ -93,6 +95,8 @@ class ContratoTest {
                 () -> Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO).diasDeGracia(-1).firmar());
         assertThrows(IllegalArgumentException.class,
                 () -> Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO).mora(null).firmar());
+        assertThrows(IllegalArgumentException.class,
+                () -> Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO).ordenImputacion(null).firmar());
     }
 
     // Multa con días de gracia: cuota de $160.000 que vence el 10 de febrero, 2 días de gracia

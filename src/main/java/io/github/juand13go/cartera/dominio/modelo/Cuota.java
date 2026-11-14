@@ -14,6 +14,7 @@ public class Cuota {
     private final BigDecimal valor;
     private BigDecimal valorCubierto;
     private LocalDate fechaCubierta;
+    private BigDecimal multaPagada;
 
     public Cuota(int numero, LocalDate fechaVencimiento, BigDecimal valor) {
         this.numero = numero;
@@ -21,6 +22,7 @@ public class Cuota {
         this.valor = valor;
         this.valorCubierto = BigDecimal.ZERO;
         this.fechaCubierta = null;
+        this.multaPagada = BigDecimal.ZERO;
     }
 
     public int getNumero() {
@@ -42,6 +44,22 @@ public class Cuota {
     /** Fecha en que la cuota quedó completa, o null si todavía no lo está. */
     public LocalDate getFechaCubierta() {
         return fechaCubierta;
+    }
+
+    /** Cuánto se ha abonado a la multa de esta cuota. La multa total la calcula el contrato. */
+    public BigDecimal getMultaPagada() {
+        return multaPagada;
+    }
+
+    /**
+     * Abona a la multa de esta cuota. Quien llama (el préstamo) se asegura de no pasarse
+     * de lo que falta, porque la multa total depende de la fecha y de la política del contrato.
+     */
+    public void abonarMulta(BigDecimal monto) {
+        if (monto.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("El monto debe ser mayor que cero");
+        }
+        multaPagada = multaPagada.add(monto);
     }
 
     /** Lo que falta por pagar de esta cuota. */
