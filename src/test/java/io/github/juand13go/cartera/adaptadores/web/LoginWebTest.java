@@ -3,6 +3,7 @@ package io.github.juand13go.cartera.adaptadores.web;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -33,16 +34,21 @@ class LoginWebTest {
     }
 
     @Test
-    void laPantallaDeLoginTieneLosDosFormularios() throws Exception {
-        mvc.perform(get("/login"))
+    void laPantallaDeLoginTieneUnSoloFormularioSinEscogerRol() throws Exception {
+        String pagina = mvc.perform(get("/login"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Soy cliente")))
-                .andExpect(content().string(containsString("Soy el prestamista")));
+                .andExpect(content().string(containsString("Cédula o usuario")))
+                .andExpect(content().string(containsString("Contraseña")))
+                .andExpect(content().string(containsString("action=\"/login\"")))
+                .andReturn().getResponse().getContentAsString();
+
+        assertFalse(pagina.contains("Soy cliente"));
+        assertFalse(pagina.contains("maxlength"));
     }
 
     @Test
     void elPrestamistaEntraYVaAlPanel() throws Exception {
-        MvcResult resultado = mvc.perform(post("/login/prestamista").param("usuario", "prestamista").param("clave", "cartera2026"))
+        MvcResult resultado = mvc.perform(post("/login").param("identificador", "prestamista").param("clave", "cartera2026"))
                 .andExpect(redirectedUrl("/"))
                 .andReturn();
 
@@ -51,14 +57,14 @@ class LoginWebTest {
 
     @Test
     void conUnaClaveEquivocadaVuelveAlLoginConElMensaje() throws Exception {
-        mvc.perform(post("/login/prestamista").param("usuario", "prestamista").param("clave", "otra"))
+        mvc.perform(post("/login").param("identificador", "prestamista").param("clave", "otra"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Usuario o clave incorrectos")));
     }
 
     @Test
     void elClienteEntraConCedulaYPinYVaASusPrestamos() throws Exception {
-        MvcResult resultado = mvc.perform(post("/login/cliente").param("cedula", "1000000001").param("pin", "1234"))
+        MvcResult resultado = mvc.perform(post("/login").param("identificador", "1000000001").param("clave", "1234"))
                 .andExpect(redirectedUrl("/mis-prestamos"))
                 .andReturn();
 
@@ -69,7 +75,7 @@ class LoginWebTest {
 
     @Test
     void conUnPinEquivocadoVuelveAlLoginSinPerderLaCedula() throws Exception {
-        mvc.perform(post("/login/cliente").param("cedula", "1000000001").param("pin", "9999"))
+        mvc.perform(post("/login").param("identificador", "1000000001").param("clave", "9999"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Usuario o clave incorrectos")))
                 .andExpect(content().string(containsString("value=\"1000000001\"")));
@@ -79,7 +85,7 @@ class LoginWebTest {
     void alEntrarSeDescartaLaSesionAnterior() throws Exception {
         MockHttpSession anterior = new MockHttpSession();
 
-        mvc.perform(post("/login/cliente").session(anterior).param("cedula", "1000000001").param("pin", "1234"));
+        mvc.perform(post("/login").session(anterior).param("identificador", "1000000001").param("clave", "1234"));
 
         assertTrue(anterior.isInvalid());
     }
@@ -115,5 +121,15 @@ class LoginWebTest {
 
         assertFalse(pagina.contains("Mis préstamos"));
         assertFalse(pagina.contains(">Salir<"));
+    }
+
+    @Test
+    void lasRutasViejasYaNoInicianSesion() throws Exception {
+        MvcResult resultado = mvc.perform(post("/login/cliente").param("cedula", "1000000001").param("pin", "1234"))
+                .andExpect(redirectedUrl("/login"))
+                .andReturn();
+
+        // El interceptor la manda al login sin crear ninguna sesión: nadie entró.
+        assertNull(resultado.getRequest().getSession(false));
     }
 }

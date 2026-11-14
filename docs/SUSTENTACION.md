@@ -21,7 +21,7 @@ Las secciones de cada hito se escribieron al terminarlo; cuando algo cambió des
 
 **Qué es:** sistema web para un prestamista que maneja préstamos tipo rédito (cada periodo se paga el interés; lo que
 se pague de más va a capital; se cierra cuando no se debe nada). Dos roles: prestamista (todo) y cliente (solo lectura,
-solo lo suyo). 327 pruebas automáticas.
+solo lo suyo). 330 pruebas automáticas.
 
 **Las cuatro estructuras (hechas a mano, genéricas, `Iterable`):**
 
@@ -764,14 +764,14 @@ se registrara un pago por error, está el botón de deshacer el último pago, qu
 
 | Pieza | Clases | Qué hace |
 |---|---|---|
-| Iniciar sesión | `IniciarSesion`, `UsuarioSesion`, `Rol` | Prestamista: usuario y contraseña de la configuración. Cliente: cédula (buscada en la `TablaHash`) y PIN |
+| Iniciar sesión | `IniciarSesion`, `UsuarioSesion`, `Rol` | Un solo método, `entrar(identificador, clave)`, que deduce el rol: si es el usuario del prestamista verifica su contraseña; si no, busca la cédula en la `TablaHash` y verifica el PIN |
 | Sesión HTTP | `SesionWeb`, `LoginControlador`, `login.html` | Guarda quién entró; al entrar descarta la sesión anterior; salir la cierra |
 | Protección en el backend | `InterceptorRoles`, `ConfiguracionWeb`, `error/403.html` | Revisa cada petición antes del controlador (lista blanca) |
 | Portal del cliente | `PortalClienteControlador`, `mis-prestamos.html`, `mi-prestamo.html` | Solo lectura: sus préstamos, progreso, próximo cobro, valor para estar al día, recibos |
 | Simulador | `SimularAbono`, `ResultadoSimulacion` | "Si abono $X hoy": reparto, nuevo capital y, con capital vigente, nuevo interés |
 | Cálculos del dominio | `Prestamo.valorParaEstarAlDia`, `proximaCuotaPendiente`, `porcentajeDeCapitalPagado`, `interesProximaCuota` | Lo que muestra el portal |
 
-Pruebas al cerrar el hito: 327 (42 nuevas).
+Pruebas al cerrar el hito: 327 (42 nuevas). *(330 después de unificar el login en un solo formulario.)*
 
 ### Usuarios para entrar
 
@@ -779,6 +779,25 @@ Pruebas al cerrar el hito: 327 (42 nuevas).
 |---|---|---|
 | Prestamista | usuario + contraseña | `prestamista` / `cartera2026` |
 | Cliente | cédula + PIN | `1000000001` a `1000000004`, PIN `1234` |
+
+### Un solo formulario: el sistema deduce el rol
+
+*(Al principio había dos formularios, "Soy cliente" y "Soy el prestamista", con dos rutas. Se unificó después del hito 6.)*
+
+`login.html` tiene un solo formulario, "Cédula o usuario" y "Contraseña", que envía `POST /login`. El campo de contraseña
+sirve para la contraseña del prestamista y para el PIN del cliente. `IniciarSesion.entrar(identificador, clave)` decide:
+
+1. Si el identificador es el usuario del prestamista (el de `application.properties`), verifica la contraseña con BCrypt
+   → rol `PRESTAMISTA`.
+2. Si no, lo busca como cédula en la `TablaHash` del `DirectorioClientes` (O(1)) y verifica el PIN con BCrypt → rol `CLIENTE`.
+3. Si nada coincide → "Usuario o clave incorrectos" (el mismo mensaje en todos los casos).
+
+Para que el paso 1 nunca se confunda con una cédula, **el usuario del prestamista no puede ser solo números**: el
+constructor de `IniciarSesion` lo valida y, si lo es, lanza una excepción con el motivo. Como ese constructor corre al
+arrancar, una configuración así impide que la aplicación arranque.
+
+`InterceptorRoles` no cambió: decide con el rol guardado en la sesión, no con la ruta por la que se entró. Solo se quitó
+de `ConfiguracionWeb` la exclusión `/login/**`, que ya no tenía ninguna ruta.
 
 ### Contraseñas y PIN: solo hashes BCrypt
 
@@ -869,6 +888,15 @@ hash de cada PIN. Al entrar, BCrypt calcula si lo que se escribió corresponde a
 original a partir del hash. Como BCrypt agrega una sal aleatoria, dos clientes con el mismo PIN tienen hashes distintos, y
 como es lento a propósito, probar miles de PIN por fuerza bruta resulta costoso.
 
+**4. ¿Por qué el usuario no escoge su rol al entrar?**
+
+Porque el rol no es algo que el usuario declare: es un dato de su cuenta. Si el formulario dejara escoger "soy prestamista"
+o "soy cliente", el rol dependería de lo que alguien marca, y sería una puerta más que proteger (y una fuente de errores:
+un cliente que marca la opción equivocada no entra y no sabe por qué). Con un solo formulario, `IniciarSesion.entrar` deduce
+el rol de la cuenta: si el identificador es el usuario del prestamista, verifica su contraseña; si no, lo busca como cédula
+en la tabla hash y verifica el PIN. Para que no haya ambigüedad, el usuario del prestamista no puede ser numérico, así que
+nunca coincide con una cédula. Y el mensaje de error es siempre el mismo, para no revelar si la cuenta existe.
+
 ---
 
 ## Preguntas generales del proyecto
@@ -902,7 +930,7 @@ repositorios JDBC agregan cada fila directamente a una `ListaDoble`.
 
 **5. ¿Cómo saben que todo funciona?**
 
-Hay 327 pruebas automáticas (`./mvnw test`): de cada estructura, del dominio (incluidos los 5 casos calculados a mano), de
+Hay 330 pruebas automáticas (`./mvnw test`): de cada estructura, del dominio (incluidos los 5 casos calculados a mano), de
 las políticas, de los casos de uso (sin Spring), de la persistencia (contra H2 real con Flyway), de las pantallas (con
 `MockMvc`) y del interceptor de roles (enviando peticiones prohibidas directamente). Además, los datos de prueba tienen su
 propia prueba que comprueba el estado de cada préstamo a una fecha fija. Y la aplicación se probó en vivo: así encontramos
@@ -922,7 +950,7 @@ Cada requisito de `CLAUDE.md` y dónde se cumple.
 | JDBC con `JdbcTemplate`, SQL a mano, sin JPA | `RepositorioClientesJdbc`, `RepositorioPrestamosJdbc` |
 | H2 en archivo `./data/cartera`, `MODE=PostgreSQL`, SQL estándar; `data/` en `.gitignore` | `application.properties`, `.gitignore`, `V1__crea_esquema.sql` |
 | Migraciones Flyway | `db/migration/V1__crea_esquema.sql`, `V2__datos_de_prueba.sql` |
-| Pruebas con JUnit 5 | `src/test` (327 pruebas) |
+| Pruebas con JUnit 5 | `src/test` (330 pruebas) |
 | Solo `spring-security-crypto` para BCrypt | `pom.xml`, `CifradorPinBCrypt` |
 | Conexión con variables de entorno y valores por defecto | `application.properties` (`DB_URL`, `DB_USUARIO`, `DB_CLAVE`) |
 
@@ -968,7 +996,7 @@ Cada requisito de `CLAUDE.md` y dónde se cumple.
 
 | Requisito | Dónde |
 |---|---|
-| Dos roles, mismo login; prestamista con contraseña BCrypt de la configuración; cliente con cédula + PIN | `login.html`, `IniciarSesion` |
+| Dos roles, mismo login; prestamista con contraseña BCrypt de la configuración; cliente con cédula + PIN | `login.html` (un solo formulario, `POST /login`), `IniciarSesion.entrar` |
 | Sesión HTTP | `SesionWeb` |
 | `InterceptorRoles` bloquea POST del cliente y préstamos ajenos en el backend | `InterceptorRoles`, `InterceptorRolesTest` |
 | Panel: agenda (ColaPrioridad por fecha) y mora (ColaPrioridad por días de atraso) | `/`, `ArmarPanel` |

@@ -29,6 +29,9 @@ La primera vez, Flyway crea la base de datos H2 en `./data/cartera` y carga los 
 
 ## Usuarios de prueba (datos inventados)
 
+Todos entran por el mismo formulario ("Cédula o usuario" y "Contraseña"): el sistema reconoce si es el prestamista o un
+cliente a partir de la cuenta; nadie escoge su rol.
+
 | Rol | Entra con | Qué se ve |
 |---|---|---|
 | Prestamista | `prestamista` / `cartera2026` | Todo: panel, clientes, préstamos, pagos, recibos |

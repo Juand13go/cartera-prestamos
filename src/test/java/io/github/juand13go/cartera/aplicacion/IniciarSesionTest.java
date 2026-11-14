@@ -12,8 +12,10 @@ import org.junit.jupiter.api.Test;
 
 import io.github.juand13go.cartera.dominio.modelo.Cliente;
 
+/** Un solo método, entrar(identificador, clave): el rol lo deduce el sistema, no lo escoge el usuario. */
 class IniciarSesionTest {
 
+    private DirectorioClientes directorio;
     private IniciarSesion iniciarSesion;
 
     @BeforeEach
@@ -21,14 +23,14 @@ class IniciarSesionTest {
         RepositorioClientesEnMemoria clientes = new RepositorioClientesEnMemoria();
         clientes.guardar(new Cliente("1000000001", "Laura Gómez", "3000000001", null, null,
                 new BigDecimal("5000000"), null, "cifrado:1234"));
+        directorio = new DirectorioClientes(clientes);
         // El CifradorFalso "cifra" cartera2026 como cifrado:cartera2026.
-        iniciarSesion = new IniciarSesion(new DirectorioClientes(clientes), new CifradorFalso(),
-                "prestamista", "cifrado:cartera2026");
+        iniciarSesion = new IniciarSesion(directorio, new CifradorFalso(), "prestamista", "cifrado:cartera2026");
     }
 
     @Test
-    void elPrestamistaEntraConSuUsuarioYClave() {
-        UsuarioSesion usuario = iniciarSesion.prestamista("prestamista", "cartera2026");
+    void elPrestamistaEntraConSuUsuarioYQuedaConRolPrestamista() {
+        UsuarioSesion usuario = iniciarSesion.entrar("prestamista", "cartera2026");
 
         assertTrue(usuario.esPrestamista());
         assertNull(usuario.cedula());
@@ -36,20 +38,8 @@ class IniciarSesionTest {
     }
 
     @Test
-    void elPrestamistaNoEntraConUnaClaveOUsuarioEquivocados() {
-        IllegalArgumentException claveMala = assertThrows(IllegalArgumentException.class,
-                () -> iniciarSesion.prestamista("prestamista", "otra"));
-        IllegalArgumentException usuarioMalo = assertThrows(IllegalArgumentException.class,
-                () -> iniciarSesion.prestamista("admin", "cartera2026"));
-
-        // El mismo mensaje en los dos casos: no se revela qué falló.
-        assertEquals(claveMala.getMessage(), usuarioMalo.getMessage());
-        assertThrows(IllegalArgumentException.class, () -> iniciarSesion.prestamista(null, null));
-    }
-
-    @Test
-    void elClienteEntraConSuCedulaYPin() {
-        UsuarioSesion usuario = iniciarSesion.cliente("1000000001", "1234");
+    void unClienteEntraConSuCedulaYSuPinYQuedaConRolCliente() {
+        UsuarioSesion usuario = iniciarSesion.entrar(" 1000000001 ", "1234");
 
         assertTrue(usuario.esCliente());
         assertEquals("1000000001", usuario.cedula());
@@ -57,14 +47,40 @@ class IniciarSesionTest {
     }
 
     @Test
-    void elClienteNoEntraConUnPinMaloOUnaCedulaQueNoExiste() {
-        IllegalArgumentException pinMalo = assertThrows(IllegalArgumentException.class,
-                () -> iniciarSesion.cliente("1000000001", "9999"));
-        IllegalArgumentException noExiste = assertThrows(IllegalArgumentException.class,
-                () -> iniciarSesion.cliente("1000000099", "1234"));
+    void unaClaveIncorrectaDaElMensajeGenericoParaPrestamistaYCliente() {
+        IllegalArgumentException prestamista = assertThrows(IllegalArgumentException.class,
+                () -> iniciarSesion.entrar("prestamista", "otra"));
+        IllegalArgumentException cliente = assertThrows(IllegalArgumentException.class,
+                () -> iniciarSesion.entrar("1000000001", "9999"));
 
-        assertEquals(IniciarSesion.CREDENCIALES_INCORRECTAS, pinMalo.getMessage());
-        assertEquals(pinMalo.getMessage(), noExiste.getMessage());
-        assertThrows(IllegalArgumentException.class, () -> iniciarSesion.cliente("1000000001", null));
+        assertEquals("Usuario o clave incorrectos", prestamista.getMessage());
+        assertEquals("Usuario o clave incorrectos", cliente.getMessage());
+    }
+
+    @Test
+    void unaCuentaQueNoExisteDaElMismoMensaje() {
+        IllegalArgumentException cedula = assertThrows(IllegalArgumentException.class,
+                () -> iniciarSesion.entrar("1000000099", "1234"));
+        IllegalArgumentException usuario = assertThrows(IllegalArgumentException.class,
+                () -> iniciarSesion.entrar("admin", "cartera2026"));
+
+        assertEquals(IniciarSesion.CREDENCIALES_INCORRECTAS, cedula.getMessage());
+        assertEquals(IniciarSesion.CREDENCIALES_INCORRECTAS, usuario.getMessage());
+        assertThrows(IllegalArgumentException.class, () -> iniciarSesion.entrar(null, null));
+    }
+
+    @Test
+    void laContrasenaDelPrestamistaNoSirveComoPinDeUnCliente() {
+        assertThrows(IllegalArgumentException.class, () -> iniciarSesion.entrar("1000000001", "cartera2026"));
+    }
+
+    @Test
+    void unUsuarioDePrestamistaNumericoSeRechazaAlConstruir() {
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> new IniciarSesion(directorio, new CifradorFalso(), "1000000001", "cifrado:cartera2026"));
+
+        assertTrue(error.getMessage().contains("no puede ser solo números"));
+        assertThrows(IllegalArgumentException.class,
+                () -> new IniciarSesion(directorio, new CifradorFalso(), " ", "cifrado:cartera2026"));
     }
 }

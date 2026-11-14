@@ -12,7 +12,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import io.github.juand13go.cartera.aplicacion.IniciarSesion;
 import io.github.juand13go.cartera.aplicacion.UsuarioSesion;
 
-/** Entrar (prestamista o cliente) y salir. */
+/** Entrar (un solo formulario para prestamista y clientes) y salir. */
 @Controller
 public class LoginControlador {
 
@@ -32,32 +32,21 @@ public class LoginControlador {
         return "login";
     }
 
-    @PostMapping("/login/prestamista")
-    public String entrarPrestamista(@RequestParam(required = false) String usuario,
-                                    @RequestParam(required = false) String clave,
-                                    HttpServletRequest peticion, Model modelo) {
+    /**
+     * Un solo formulario para todos: el usuario no escoge su rol, IniciarSesion lo deduce de la cuenta.
+     * Si sale bien, va al inicio de su rol; si no, vuelve al login con el mensaje y lo que escribió.
+     */
+    @PostMapping("/login")
+    public String entrar(@RequestParam(required = false) String identificador,
+                         @RequestParam(required = false) String clave,
+                         HttpServletRequest peticion, Model modelo) {
         try {
-            UsuarioSesion prestamista = iniciarSesion.prestamista(usuario, clave);
-            SesionWeb.iniciar(peticion, prestamista);
-            return "redirect:" + inicioDe(prestamista);
+            UsuarioSesion usuario = iniciarSesion.entrar(identificador, clave);
+            SesionWeb.iniciar(peticion, usuario);
+            return "redirect:" + inicioDe(usuario);
         } catch (IllegalArgumentException e) {
-            modelo.addAttribute("errorPrestamista", e.getMessage());
-            modelo.addAttribute("usuarioEscrito", usuario);
-            return "login";
-        }
-    }
-
-    @PostMapping("/login/cliente")
-    public String entrarCliente(@RequestParam(required = false) String cedula,
-                                @RequestParam(required = false) String pin,
-                                HttpServletRequest peticion, Model modelo) {
-        try {
-            UsuarioSesion cliente = iniciarSesion.cliente(cedula, pin);
-            SesionWeb.iniciar(peticion, cliente);
-            return "redirect:" + inicioDe(cliente);
-        } catch (IllegalArgumentException e) {
-            modelo.addAttribute("errorCliente", e.getMessage());
-            modelo.addAttribute("cedulaEscrita", cedula);
+            modelo.addAttribute("error", e.getMessage());
+            modelo.addAttribute("identificadorEscrito", identificador);
             return "login";
         }
     }

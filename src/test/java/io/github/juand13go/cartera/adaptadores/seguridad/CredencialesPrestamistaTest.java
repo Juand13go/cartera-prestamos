@@ -17,11 +17,11 @@ class CredencialesPrestamistaTest {
 
     @Test
     void elPrestamistaEntraConLaClavePorDefecto() {
-        assertTrue(iniciarSesion.prestamista("prestamista", "cartera2026").esPrestamista());
+        assertTrue(iniciarSesion.entrar("prestamista", "cartera2026").esPrestamista());
     }
 
     @Test
     void unClienteDePruebaEntraConPin1234() {
-        assertTrue(iniciarSesion.cliente("1000000001", "1234").esCliente());
+        assertTrue(iniciarSesion.entrar("1000000001", "1234").esCliente());
     }
 }
