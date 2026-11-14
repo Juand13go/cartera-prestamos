@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabeza('Préstamo #' + ${prestamo.id})}"></head>
+<body>
+<header th:replace="~{fragmentos :: menu}"></header>
+
+<main>
+    <h1>
+        Préstamo <span th:text="'#' + ${prestamo.id}">#1</span>
+        <span th:if="${prestamo.estaCerrado()}" class="etiqueta">pagado</span>
+    </h1>
+    <div th:replace="~{fragmentos :: mensajes}"></div>
+
+    <section>
+        <h2>Resumen</h2>
+        <div class="progreso">
+            <progress max="100" th:value="${prestamo.porcentajeDeCapitalPagado()}">0</progress>
+            <span th:text="${prestamo.porcentajeDeCapitalPagado()} + ' % del capital pagado'">0 %</span>
+        </div>
+        <dl class="datos">
+            <dt>Capital prestado</dt><dd th:text="${@textos.pesos(prestamo.contrato.capital)}">$2.000.000</dd>
+            <dt>Capital que debe</dt><dd th:text="${@textos.pesos(prestamo.capitalAdeudado())}">$2.000.000</dd>
+            <dt>Para estar al día hoy</dt><dd><strong th:text="${@textos.pesos(prestamo.valorParaEstarAlDia(hoy))}">$0</strong></dd>
+            <dt>Para cancelar todo hoy</dt><dd><strong th:text="${@textos.pesos(prestamo.valorParaCancelar(hoy))}">$2.160.000</strong></dd>
+            <dt>Tasa</dt><dd th:text="${prestamo.contrato.tasaPorPeriodo.stripTrailingZeros().toPlainString()} + ' % por periodo'">8 %</dd>
+            <dt>Frecuencia</dt><dd th:text="${@textos.frecuencia(prestamo.contrato.frecuencia)}">Mensual</dd>
+            <dt>Mora</dt><dd th:text="${@textos.mora(prestamo.contrato.politicaMora)}">Sin multa</dd>
+        </dl>
+    </section>
+
+    <section th:unless="${prestamo.estaCerrado()}">
+        <h2>Simulador: si abono hoy...</h2>
+        <p class="nota">Solo calcula: no registra ningún pago.</p>
+        <form class="en-linea" th:action="@{/mis-prestamos/{id}(id=${prestamo.id})}" method="get">
+            <input type="number" name="abono" min="1" step="1" placeholder="Monto en pesos" th:value="${abonoEscrito}" required>
+            <button type="submit">Calcular</button>
+        </form>
+        <p class="aviso error" th:if="${errorSimulacion}" th:text="${errorSimulacion}">Monto inválido</p>
+        <div th:if="${simulacion}">
+            <table>
+                <tbody>
+                <tr><td>Iría a multas</td><td class="numero" th:text="${@textos.pesos(simulacion.pago().abonoAMultas)}">$0</td></tr>
+                <tr><td>Iría a cuotas</td><td class="numero" th:text="${@textos.pesos(simulacion.pago().abonoACuotas)}">$160.000</td></tr>
+                <tr><td>Iría a capital</td><td class="numero" th:text="${@textos.pesos(simulacion.pago().abonoACapital)}">$500.000</td></tr>
+                <tr><td>Capital: antes → después</td>
+                    <td class="numero" th:text="${@textos.pesos(simulacion.capitalAntes())} + ' → ' + ${@textos.pesos(simulacion.capitalDespues())}">$2.000.000 → $1.500.000</td></tr>
+                <tr th:if="${simulacion.baseVigente()}"><td>Interés de la próxima cuota: antes → después</td>
+                    <td class="numero" th:text="${@textos.pesos(simulacion.interesAntes())} + ' → ' + ${@textos.pesos(simulacion.interesDespues())}">$160.000 → $120.000</td></tr>
+                </tbody>
+            </table>
+            <p class="nota" th:unless="${simulacion.baseVigente()}">
+                En este préstamo el interés se calcula sobre el capital inicial: abonar a capital no cambia el valor de las cuotas.</p>
+        </div>
+    </section>
+
+    <section>
+        <h2>Cuotas</h2>
+        <div class="tabla">
+            <table>
+                <thead>
+                <tr><th>#</th><th>Vence</th><th class="numero">Valor</th><th class="numero">Pagado</th>
+                    <th class="numero">Falta</th><th>Estado</th><th class="numero">Multa pendiente</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="cuota : ${prestamo.cronograma}" th:with="estado=${cuota.estado(hoy)}">
+                    <td th:text="${cuota.numero}">1</td>
+                    <td th:text="${#temporals.format(cuota.fechaVencimiento, 'dd/MM/yyyy')}">10/12/2026</td>
+                    <td class="numero" th:text="${@textos.pesos(cuota.valor)}">$160.000</td>
+                    <td class="numero" th:text="${@textos.pesos(cuota.valorCubierto)}">$0</td>
+                    <td class="numero" th:text="${@textos.pesos(cuota.saldoPendiente())}">$160.000</td>
+                    <td><span class="etiqueta" th:classappend="${estado.name() == 'MORA'} ? 'mora' : (${cuota.estaCubierta()} ? 'activo')"
+                              th:text="${@textos.estado(estado)}">Con tiempo</span></td>
+                    <td class="numero" th:text="${@textos.pesos(prestamo.saldoMulta(cuota, hoy))}">$0</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section>
+        <h2>Mis pagos</h2>
+        <p th:if="${prestamo.pagos.estaVacia()}" class="vacio">Todavía no hay pagos.</p>
+        <div class="tabla" th:unless="${prestamo.pagos.estaVacia()}">
+            <table>
+                <thead>
+                <tr><th>#</th><th>Fecha</th><th class="numero">Monto</th><th></th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="pago, vuelta : ${prestamo.pagos}" th:with="numero=${prestamo.pagos.tamano() - vuelta.index}">
+                    <td th:text="${numero}">1</td>
+                    <td th:text="${#temporals.format(pago.fecha, 'dd/MM/yyyy')}">10/12/2026</td>
+                    <td class="numero" th:text="${@textos.pesos(pago.monto)}">$160.000</td>
+                    <td><a th:href="@{/mis-prestamos/{id}/recibos/{n}(id=${prestamo.id}, n=${numero})}">Recibo</a></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+</body>
+</html>

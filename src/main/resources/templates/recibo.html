@@ -35,8 +35,8 @@
 
     <div class="acciones no-imprimir">
         <button type="button" onclick="window.print()">Imprimir</button>
-        <a class="boton" th:href="${enlaceWhatsapp}" target="_blank" rel="noopener">Enviar por WhatsApp</a>
-        <a class="boton secundario" th:href="@{/prestamos/{id}(id=${recibo.prestamoId})}">Volver al préstamo</a>
+        <a class="boton" th:if="${enlaceWhatsapp != null}" th:href="${enlaceWhatsapp}" target="_blank" rel="noopener">Enviar por WhatsApp</a>
+        <a class="boton secundario" th:href="@{${volverA}}">Volver al préstamo</a>
     </div>
 </main>
 </body>

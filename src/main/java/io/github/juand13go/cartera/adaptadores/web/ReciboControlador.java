@@ -50,6 +50,7 @@ public class ReciboControlador {
     private String mostrar(Recibo recibo, Model modelo) {
         modelo.addAttribute("recibo", recibo);
         modelo.addAttribute("enlaceWhatsapp", textos.enlaceWhatsapp(recibo));
+        modelo.addAttribute("volverA", "/prestamos/" + recibo.getPrestamoId());
         return "recibo";
     }
 }
