@@ -6,6 +6,8 @@ import java.time.LocalDate;
 import io.github.juand13go.cartera.dominio.politicas.Calendario;
 import io.github.juand13go.cartera.dominio.politicas.Frecuencia;
 import io.github.juand13go.cartera.dominio.politicas.FrecuenciaMensual;
+import io.github.juand13go.cartera.dominio.politicas.PoliticaMora;
+import io.github.juand13go.cartera.dominio.politicas.SinMulta;
 
 /**
  * Las condiciones del préstamo. Se fijan al crearlo y no cambian después: por eso no tiene setters
@@ -26,6 +28,8 @@ public class Contrato {
     private final LocalDate fechaDesembolso;
     private final Frecuencia frecuencia;
     private final Calendario calendario;
+    private final PoliticaMora politicaMora;
+    private final int diasDeGracia;
 
     /**
      * Empieza un borrador con lo que no tiene valor por defecto.
@@ -47,8 +51,11 @@ public class Contrato {
             throw new IllegalArgumentException("La tasa debe ser mayor que cero");
         }
         if (borrador.baseInteres == null || borrador.fechaDesembolso == null || borrador.frecuencia == null
-                || borrador.calendario == null) {
+                || borrador.calendario == null || borrador.politicaMora == null) {
             throw new IllegalArgumentException("Faltan condiciones del contrato");
+        }
+        if (borrador.diasDeGracia < 0) {
+            throw new IllegalArgumentException("Los días de gracia no pueden ser negativos");
         }
         this.capital = borrador.capital;
         this.tasaPorPeriodo = borrador.tasaPorPeriodo;
@@ -56,6 +63,8 @@ public class Contrato {
         this.fechaDesembolso = borrador.fechaDesembolso;
         this.frecuencia = borrador.frecuencia;
         this.calendario = borrador.calendario;
+        this.politicaMora = borrador.politicaMora;
+        this.diasDeGracia = borrador.diasDeGracia;
     }
 
     public BigDecimal getCapital() {
@@ -82,9 +91,26 @@ public class Contrato {
         return calendario;
     }
 
+    public PoliticaMora getPoliticaMora() {
+        return politicaMora;
+    }
+
+    public int getDiasDeGracia() {
+        return diasDeGracia;
+    }
+
     /** Fecha en que vence la cuota número {@code numeroCuota}: la de la frecuencia, ajustada al calendario. */
     public LocalDate fechaVencimiento(int numeroCuota) {
         return calendario.ajustar(frecuencia.fechaVencimiento(fechaDesembolso, numeroCuota));
+    }
+
+    /**
+     * Multa total que ha generado una cuota hasta {@code hoy}, según la política de mora.
+     * La multa empieza a contar cuando terminan los días de gracia.
+     */
+    public BigDecimal multa(Cuota cuota, LocalDate hoy) {
+        int diasConMulta = Math.max(0, cuota.diasDeAtraso(hoy) - diasDeGracia);
+        return politicaMora.multa(cuota.getValor(), diasConMulta);
     }
 
     /**
@@ -99,6 +125,8 @@ public class Contrato {
         private BaseInteres baseInteres = BaseInteres.CAPITAL_INICIAL;
         private Frecuencia frecuencia;
         private Calendario calendario = Calendario.TODOS_LOS_DIAS;
+        private PoliticaMora politicaMora = new SinMulta();
+        private int diasDeGracia = 2;
 
         private Borrador(BigDecimal capital, BigDecimal tasaPorPeriodo, LocalDate fechaDesembolso) {
             this.capital = capital;
@@ -122,6 +150,16 @@ public class Contrato {
 
         public Borrador calendario(Calendario calendario) {
             this.calendario = calendario;
+            return this;
+        }
+
+        public Borrador mora(PoliticaMora politicaMora) {
+            this.politicaMora = politicaMora;
+            return this;
+        }
+
+        public Borrador diasDeGracia(int diasDeGracia) {
+            this.diasDeGracia = diasDeGracia;
             return this;
         }
 

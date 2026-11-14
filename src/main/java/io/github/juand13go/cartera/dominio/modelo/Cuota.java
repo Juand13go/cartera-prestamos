@@ -2,6 +2,7 @@ package io.github.juand13go.cartera.dominio.modelo;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 /**
  * Una cuota del cronograma: lo que el cliente debe pagar en una fecha.
@@ -67,6 +68,17 @@ public class Cuota {
         if (estaCubierta()) {
             fechaCubierta = fecha;
         }
+    }
+
+    /**
+     * Días que lleva (o llevó) de atraso: desde el vencimiento hasta el día en que se cubrió,
+     * o hasta hoy si todavía no está cubierta. Si no está atrasada, 0.
+     * Por eso la multa se congela el día en que la cuota se paga completa.
+     */
+    public int diasDeAtraso(LocalDate hoy) {
+        LocalDate hasta = estaCubierta() ? fechaCubierta : hoy;
+        long dias = ChronoUnit.DAYS.between(fechaVencimiento, hasta);
+        return (int) Math.max(0, dias);
     }
 
     public EstadoCuota estado(LocalDate hoy) {

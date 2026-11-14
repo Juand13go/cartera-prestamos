@@ -107,4 +107,37 @@ class CuotaTest {
         assertThrows(IllegalArgumentException.class,
                 () -> cuota.cubrir(new BigDecimal("-5000"), LocalDate.of(2027, 2, 8)));
     }
+
+    // Días de atraso
+
+    @Test
+    void antesODelDiaDelVencimientoNoHayAtraso() {
+        Cuota cuota = cuotaDeFebrero();
+
+        assertEquals(0, cuota.diasDeAtraso(LocalDate.of(2027, 2, 1)));
+        assertEquals(0, cuota.diasDeAtraso(VENCE_10_FEB));
+    }
+
+    @Test
+    void sinCubrirElAtrasoCuentaHastaHoy() {
+        Cuota cuota = cuotaDeFebrero();
+
+        assertEquals(5, cuota.diasDeAtraso(LocalDate.of(2027, 2, 15)));
+    }
+
+    @Test
+    void cubiertaElAtrasoSeCongelaElDiaEnQueSeCubrio() {
+        Cuota cuota = cuotaDeFebrero();
+        cuota.cubrir(new BigDecimal("160000"), LocalDate.of(2027, 2, 14));
+
+        assertEquals(4, cuota.diasDeAtraso(LocalDate.of(2027, 3, 1)));
+    }
+
+    @Test
+    void cubiertaATiempoNoTieneAtraso() {
+        Cuota cuota = cuotaDeFebrero();
+        cuota.cubrir(new BigDecimal("160000"), LocalDate.of(2027, 2, 5));
+
+        assertEquals(0, cuota.diasDeAtraso(LocalDate.of(2027, 3, 1)));
+    }
 }
