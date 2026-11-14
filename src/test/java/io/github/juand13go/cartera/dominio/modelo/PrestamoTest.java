@@ -27,7 +27,7 @@ class PrestamoTest {
         Contrato contrato = Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO_CASO_1)
                 .base(base)
                 .firmar();
-        return new Prestamo("1001", contrato);
+        return new Prestamo(1, "1001", contrato);
     }
 
     private static BigDecimal pesos(String valor) {
@@ -92,7 +92,7 @@ class PrestamoTest {
         Contrato contrato = Contrato.borrador(pesos("8000000"), pesos("5"), LocalDate.of(2026, 11, 30))
                 .frecuencia(new FrecuenciaMensual(30))
                 .firmar();
-        Prestamo prestamo = new Prestamo("1002", contrato);
+        Prestamo prestamo = new Prestamo(1, "1002", contrato);
 
         prestamo.actualizarCronograma(LocalDate.of(2027, 3, 1));
 
@@ -110,7 +110,7 @@ class PrestamoTest {
         Contrato contrato = Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO_CASO_1)
                 .calendario(Calendario.SIN_DOMINGOS)
                 .firmar();
-        Prestamo prestamo = new Prestamo("1005", contrato);
+        Prestamo prestamo = new Prestamo(1, "1005", contrato);
 
         prestamo.actualizarCronograma(LocalDate.of(2027, 1, 12));
 
@@ -221,7 +221,7 @@ class PrestamoTest {
                 .mora(new MultaFijaDiaria(pesos("2000")))
                 .ordenImputacion(orden)
                 .firmar();
-        return new Prestamo("1006", contrato);
+        return new Prestamo(1, "1006", contrato);
     }
 
     @Test
@@ -374,6 +374,55 @@ class PrestamoTest {
         assertThrows(IllegalStateException.class, () -> prestamo.condonarMulta(1, quinceDic));
     }
 
+    @Test
+    void condonarDevuelveEnCuantoQuedoFijadaLaMulta() {
+        Prestamo prestamo = prestamoConMulta(OrdenImputacion.MULTAS_PRIMERO);
+        prestamo.registrarPago(LocalDate.of(2026, 12, 15), pesos("4000"));
+
+        assertEquals(pesos("4000"), prestamo.condonarMulta(1, LocalDate.of(2026, 12, 15)));
+    }
+
+    @Test
+    void restaurarLaCondonacionYRepetirLosPagosDaElMismoEstado() {
+        // Así se reconstruirá desde la base de datos: contrato, condonaciones guardadas y pagos en orden.
+        Prestamo original = prestamoConMulta(OrdenImputacion.MULTAS_PRIMERO);
+        original.registrarPago(LocalDate.of(2026, 12, 15), pesos("4000"));
+        BigDecimal fijadaEn = original.condonarMulta(1, LocalDate.of(2026, 12, 15));
+        original.registrarPago(LocalDate.of(2026, 12, 20), pesos("170000"));
+
+        Prestamo reconstruido = new Prestamo(1, "1006", original.getContrato());
+        reconstruido.restaurarCondonacion(1, fijadaEn);
+        reconstruido.registrarPago(LocalDate.of(2026, 12, 15), pesos("4000"));
+        reconstruido.registrarPago(LocalDate.of(2026, 12, 20), pesos("170000"));
+
+        Cuota primera = reconstruido.getCronograma().primero();
+        assertTrue(primera.estaMultaCondonada());
+        assertEquals(pesos("4000"), primera.getMultaPagada());
+        assertEquals(pesos("0"), reconstruido.getPagos().verTope().getAbonoAMultas());
+        assertEquals(original.getPagos().verTope().getAbonoACuotas(), reconstruido.getPagos().verTope().getAbonoACuotas());
+    }
+
+    @Test
+    void unaCondonacionRestauradaSeAplicaCuandoLaCuotaNace() {
+        Prestamo prestamo = prestamoConMulta(OrdenImputacion.MULTAS_PRIMERO);
+        prestamo.restaurarCondonacion(2, BigDecimal.ZERO);
+
+        prestamo.actualizarCronograma(LocalDate.of(2027, 1, 20));
+
+        assertTrue(prestamo.getCronograma().obtener(1).estaMultaCondonada());
+        assertEquals(pesos("0"), prestamo.saldoMulta(prestamo.getCronograma().obtener(1), LocalDate.of(2027, 1, 20)));
+    }
+
+    @Test
+    void restaurarUnaCondonacionInvalidaORepetidaLanzaExcepcion() {
+        Prestamo prestamo = prestamoConMulta(OrdenImputacion.MULTAS_PRIMERO);
+
+        assertThrows(IllegalArgumentException.class, () -> prestamo.restaurarCondonacion(0, BigDecimal.ZERO));
+        assertThrows(IllegalArgumentException.class, () -> prestamo.restaurarCondonacion(1, pesos("-1")));
+        prestamo.restaurarCondonacion(1, BigDecimal.ZERO);
+        assertThrows(IllegalStateException.class, () -> prestamo.restaurarCondonacion(1, BigDecimal.ZERO));
+    }
+
     // Deshacer
 
     @Test
@@ -458,7 +507,7 @@ class PrestamoTest {
                 .base(base)
                 .alVencerPlazo(alVencer)
                 .firmar();
-        return new Prestamo("1007", contrato);
+        return new Prestamo(1, "1007", contrato);
     }
 
     @Test
@@ -532,7 +581,7 @@ class PrestamoTest {
                 .mora(new MultaFijaDiaria(pesos("2000")))
                 .ordenImputacion(OrdenImputacion.CUOTAS_PRIMERO)
                 .firmar();
-        Prestamo prestamo = new Prestamo("1008", contrato);
+        Prestamo prestamo = new Prestamo(1, "1008", contrato);
         // Paga las cuotas 1 a 23 el día de su vencimiento, sin multas.
         for (int numero = 1; numero <= 23; numero++) {
             prestamo.registrarPago(contrato.fechaVencimiento(numero), pesos("160000"));
@@ -555,7 +604,7 @@ class PrestamoTest {
         Contrato contrato = Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO_CASO_1)
                 .interesCancelacion(interes)
                 .firmar();
-        return new Prestamo("1009", contrato);
+        return new Prestamo(1, "1009", contrato);
     }
 
     @Test
@@ -635,7 +684,7 @@ class PrestamoTest {
         original.registrarPago(LocalDate.of(2026, 11, 20), pesos("50000"));
         original.cancelar(VEINTICINCO_NOV);
 
-        Prestamo reconstruido = new Prestamo("1009", original.getContrato());
+        Prestamo reconstruido = new Prestamo(1, "1009", original.getContrato());
         ListaDoble<Pago> enOrden = new ListaDoble<>();
         for (Pago pago : original.getPagos()) {
             enOrden.agregarAlInicio(pago);
@@ -722,7 +771,7 @@ class PrestamoTest {
         // 150.050 × 1 % = 1.500,50 → 1.501
         Contrato contrato = Contrato.borrador(pesos("150050"), pesos("1"), DESEMBOLSO_CASO_1).firmar();
 
-        assertEquals(pesos("1501"), new Prestamo("1003", contrato).getCronograma().primero().getValor());
+        assertEquals(pesos("1501"), new Prestamo(1, "1003", contrato).getCronograma().primero().getValor());
     }
 
     @Test
@@ -730,7 +779,7 @@ class PrestamoTest {
         // 1.234.567 × 3 % = 37.037,01 → 37.037
         Contrato contrato = Contrato.borrador(pesos("1234567"), pesos("3"), DESEMBOLSO_CASO_1).firmar();
 
-        assertEquals(pesos("37037"), new Prestamo("1004", contrato).getCronograma().primero().getValor());
+        assertEquals(pesos("37037"), new Prestamo(1, "1004", contrato).getCronograma().primero().getValor());
     }
 
     // Validaciones del préstamo
@@ -739,6 +788,14 @@ class PrestamoTest {
     void prestamoSinCedulaLanzaExcepcion() {
         Contrato contrato = Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO_CASO_1).firmar();
 
-        assertThrows(IllegalArgumentException.class, () -> new Prestamo(" ", contrato));
+        assertThrows(IllegalArgumentException.class, () -> new Prestamo(1, " ", contrato));
+    }
+
+    @Test
+    void elPrestamoGuardaSuIdYNoAceptaIdsNoPositivos() {
+        Contrato contrato = Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO_CASO_1).firmar();
+
+        assertEquals(15, new Prestamo(15, "1001", contrato).getId());
+        assertThrows(IllegalArgumentException.class, () -> new Prestamo(0, "1001", contrato));
     }
 }

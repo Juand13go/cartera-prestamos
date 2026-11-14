@@ -36,6 +36,7 @@ import io.github.juand13go.cartera.dominio.politicas.OrdenImputacion;
 public class Prestamo {
     private static final BigDecimal CIEN = new BigDecimal("100");
 
+    private final long id;
     private final String cedulaCliente;
     private final Contrato contrato;
     private ListaDoble<Cuota> cronograma;
@@ -43,14 +44,22 @@ public class Prestamo {
     private BigDecimal capitalPendiente;
     private final TablaHash<Integer, BigDecimal> condonaciones;
 
-    /** Crea el préstamo el día del desembolso, con su primera cuota ya generada. */
-    public Prestamo(String cedulaCliente, Contrato contrato) {
+    /**
+     * Crea el préstamo el día del desembolso, con su primera cuota ya generada.
+     *
+     * @param id número del préstamo; lo asigna la base de datos al guardar el contrato
+     */
+    public Prestamo(long id, String cedulaCliente, Contrato contrato) {
+        if (id <= 0) {
+            throw new IllegalArgumentException("El id del préstamo debe ser positivo");
+        }
         if (cedulaCliente == null || cedulaCliente.isBlank()) {
             throw new IllegalArgumentException("El préstamo necesita la cédula del cliente");
         }
         if (contrato == null) {
             throw new IllegalArgumentException("El préstamo necesita un contrato");
         }
+        this.id = id;
         this.cedulaCliente = cedulaCliente;
         this.contrato = contrato;
         this.condonaciones = new TablaHash<>();
@@ -63,6 +72,10 @@ public class Prestamo {
         this.pagos = new Pila<>();
         this.capitalPendiente = contrato.getCapital();
         agregarSiguienteCuota();
+    }
+
+    public long getId() {
+        return id;
     }
 
     public String getCedulaCliente() {
@@ -128,15 +141,40 @@ public class Prestamo {
     /**
      * El prestamista anula lo que falta de la multa de una cuota. Lo ya pagado se respeta.
      * Se anota en la tabla de condonaciones para que sobreviva si luego se deshace un pago.
+     *
+     * @return en cuánto quedó fijada la multa (lo que ya estaba pagado); es lo que se guarda en la base de datos
      */
-    public void condonarMulta(int numeroCuota, LocalDate hoy) {
+    public BigDecimal condonarMulta(int numeroCuota, LocalDate hoy) {
         actualizarCronograma(hoy);
         if (numeroCuota < 1 || numeroCuota > cronograma.tamano()) {
             throw new IllegalArgumentException("No existe la cuota " + numeroCuota);
         }
         Cuota cuota = cronograma.obtener(numeroCuota - 1);
-        cuota.condonarMulta(cuota.getMultaPagada());
-        condonaciones.guardar(numeroCuota, cuota.getMultaPagada());
+        BigDecimal fijadaEn = cuota.getMultaPagada();
+        cuota.condonarMulta(fijadaEn);
+        condonaciones.guardar(numeroCuota, fijadaEn);
+        return fijadaEn;
+    }
+
+    /**
+     * Vuelve a poner una condonación guardada, al reconstruir el préstamo desde la base de datos.
+     * Se llama recién creado el préstamo, antes de volver a aplicar los pagos: la cuota nace
+     * condonada (o se condona ya, si es la primera, que nace con el préstamo).
+     */
+    public void restaurarCondonacion(int numeroCuota, BigDecimal fijadaEn) {
+        if (numeroCuota < 1) {
+            throw new IllegalArgumentException("No existe la cuota " + numeroCuota);
+        }
+        if (fijadaEn == null || fijadaEn.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("El valor condonado no puede ser negativo");
+        }
+        if (condonaciones.contiene(numeroCuota)) {
+            throw new IllegalStateException("La multa de la cuota " + numeroCuota + " ya fue condonada");
+        }
+        condonaciones.guardar(numeroCuota, fijadaEn);
+        if (numeroCuota <= cronograma.tamano()) {
+            cronograma.obtener(numeroCuota - 1).condonarMulta(fijadaEn);
+        }
     }
 
     /**
