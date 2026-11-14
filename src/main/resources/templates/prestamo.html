@@ -12,50 +12,42 @@
     </h1>
     <div th:replace="~{fragmentos :: mensajes}"></div>
 
-    <section>
-        <h2>Resumen</h2>
-        <dl class="datos">
-            <dt>Capital prestado</dt><dd th:text="${@textos.pesos(prestamo.contrato.capital)}">$2.000.000</dd>
-            <dt>Capital que debe</dt><dd th:text="${@textos.pesos(prestamo.capitalAdeudado())}">$2.000.000</dd>
-            <dt>Saldo total hoy</dt><dd th:text="${@textos.pesos(prestamo.saldoTotal(hoy))}">$2.160.000</dd>
-            <dt>Para cancelar todo hoy</dt><dd><strong th:text="${@textos.pesos(valorParaCancelar)}">$2.160.000</strong></dd>
-        </dl>
-    </section>
+    <!-- Lo primero: cuánto debe y cuándo es el próximo cobro. -->
+    <div class="resumen" th:with="proxima=${prestamo.proximaCuotaPendiente()}">
+        <div class="tarjeta-resumen">
+            <p class="rotulo">Capital que debe</p>
+            <p class="cifra" th:text="${@textos.pesos(prestamo.capitalAdeudado())}">$2.000.000</p>
+            <p class="detalle" th:text="'De ' + ${@textos.pesos(prestamo.contrato.capital)} + ' prestados'">De $2.000.000 prestados</p>
+        </div>
+        <div class="tarjeta-resumen" th:classappend="${proxima != null and proxima.estado(hoy).name() == 'MORA'} ? 'alerta'">
+            <p class="rotulo">Próximo cobro</p>
+            <p class="cifra" th:text="${proxima != null} ? ${@textos.pesos(proxima.saldoPendiente())} : '—'">$160.000</p>
+            <p class="detalle" th:if="${proxima != null}">
+                <span th:text="'Cuota ' + ${proxima.numero} + ' · vence el ' + ${#temporals.format(proxima.fechaVencimiento, 'dd/MM/yyyy')}">Cuota 1 · vence el 10/12/2026</span>
+                <span class="etiqueta" th:classappend="'estado-' + ${proxima.estado(hoy).name()}"
+                      th:text="${@textos.estado(proxima.estado(hoy))}">Con tiempo</span>
+            </p>
+            <p class="detalle" th:if="${proxima == null}">No hay cuotas pendientes</p>
+        </div>
+        <div class="tarjeta-resumen">
+            <p class="rotulo">Para cancelar todo hoy</p>
+            <p class="cifra" th:text="${@textos.pesos(valorParaCancelar)}">$2.160.000</p>
+            <p class="detalle" th:text="'Saldo total hoy: ' + ${@textos.pesos(prestamo.saldoTotal(hoy))}">Saldo total hoy: $2.160.000</p>
+        </div>
+    </div>
 
     <section class="no-imprimir" th:unless="${prestamo.estaCerrado()}">
-        <h2>Acciones</h2>
-        <div class="acciones">
-            <form class="en-linea" th:action="@{/prestamos/{id}/pagos(id=${prestamo.id})}" method="post">
-                <input type="number" name="monto" min="1" step="1" placeholder="Monto en pesos" required>
-                <button type="submit">Registrar pago</button>
-            </form>
-            <form th:action="@{/prestamos/{id}/cancelar(id=${prestamo.id})}" method="post"
-                  onsubmit="return confirm('¿Registrar el pago total y cerrar el préstamo?');">
-                <button type="submit" class="secundario"
-                        th:text="'Cancelar todo (' + ${@textos.pesos(valorParaCancelar)} + ')'">Cancelar todo</button>
-            </form>
-        </div>
-    </section>
-
-    <section>
-        <h2>Contrato</h2>
-        <dl class="datos">
-            <dt>Desembolso</dt><dd th:text="${#temporals.format(prestamo.contrato.fechaDesembolso, 'dd/MM/yyyy')}">10/11/2026</dd>
-            <dt>Tasa por periodo</dt><dd th:text="${prestamo.contrato.tasaPorPeriodo.stripTrailingZeros().toPlainString()} + ' %'">8 %</dd>
-            <dt>Base del interés</dt>
-            <dd th:text="${prestamo.contrato.baseInteres.name() == 'CAPITAL_INICIAL'} ? 'Capital inicial' : 'Capital vigente'">Capital inicial</dd>
-            <dt>Frecuencia</dt><dd th:text="${@textos.frecuencia(prestamo.contrato.frecuencia)}">Mensual, el día 10</dd>
-            <dt>Calendario</dt>
-            <dd th:text="${prestamo.contrato.calendario.name() == 'SIN_DOMINGOS'} ? 'Sin domingos' : 'Todos los días'">Todos los días</dd>
-            <dt>Mora</dt>
-            <dd th:text="${@textos.mora(prestamo.contrato.politicaMora)} + ', ' + ${prestamo.contrato.diasDeGracia} + ' días de gracia'">Sin multa</dd>
-            <dt>Orden de imputación</dt>
-            <dd th:text="${prestamo.contrato.ordenImputacion.name() == 'MULTAS_PRIMERO'} ? 'Multas primero' : 'Cuotas primero'">Multas primero</dd>
-            <dt>Al vencer el plazo</dt>
-            <dd th:text="${prestamo.contrato.alVencerPlazo.name() == 'TRATAR_COMO_MORA'} ? 'Tratar como mora' : 'Seguir cobrando'">Tratar como mora</dd>
-            <dt>Interés al cancelar antes</dt>
-            <dd th:text="${prestamo.contrato.interesCancelacion.name() == 'POR_DIAS'} ? 'Por días corridos' : 'Periodo completo'">Periodo completo</dd>
-        </dl>
+        <h2>Registrar pago</h2>
+        <p class="nota">El pago es al préstamo: el sistema lo reparte según el orden de imputación del contrato.</p>
+        <form class="en-linea" th:action="@{/prestamos/{id}/pagos(id=${prestamo.id})}" method="post">
+            <input type="number" name="monto" min="1" step="1" placeholder="Monto en pesos" aria-label="Monto en pesos" required>
+            <button type="submit">Registrar pago</button>
+        </form>
+        <form class="cancelar-todo" th:action="@{/prestamos/{id}/cancelar(id=${prestamo.id})}" method="post"
+              onsubmit="return confirm('¿Registrar el pago total y cerrar el préstamo?');">
+            <button type="submit" class="peligro"
+                    th:text="'Cancelar todo (' + ${@textos.pesos(valorParaCancelar)} + ')'">Cancelar todo</button>
+        </form>
     </section>
 
     <section>
@@ -128,6 +120,28 @@
             </form>
         </div>
     </section>
+
+    <section>
+        <h2>Contrato</h2>
+        <dl class="datos">
+            <dt>Desembolso</dt><dd th:text="${#temporals.format(prestamo.contrato.fechaDesembolso, 'dd/MM/yyyy')}">10/11/2026</dd>
+            <dt>Tasa por periodo</dt><dd th:text="${prestamo.contrato.tasaPorPeriodo.stripTrailingZeros().toPlainString()} + ' %'">8 %</dd>
+            <dt>Base del interés</dt>
+            <dd th:text="${prestamo.contrato.baseInteres.name() == 'CAPITAL_INICIAL'} ? 'Capital inicial' : 'Capital vigente'">Capital inicial</dd>
+            <dt>Frecuencia</dt><dd th:text="${@textos.frecuencia(prestamo.contrato.frecuencia)}">Mensual, el día 10</dd>
+            <dt>Calendario</dt>
+            <dd th:text="${prestamo.contrato.calendario.name() == 'SIN_DOMINGOS'} ? 'Sin domingos' : 'Todos los días'">Todos los días</dd>
+            <dt>Mora</dt>
+            <dd th:text="${@textos.mora(prestamo.contrato.politicaMora)} + ', ' + ${prestamo.contrato.diasDeGracia} + ' días de gracia'">Sin multa</dd>
+            <dt>Orden de imputación</dt>
+            <dd th:text="${prestamo.contrato.ordenImputacion.name() == 'MULTAS_PRIMERO'} ? 'Multas primero' : 'Cuotas primero'">Multas primero</dd>
+            <dt>Al vencer el plazo</dt>
+            <dd th:text="${prestamo.contrato.alVencerPlazo.name() == 'TRATAR_COMO_MORA'} ? 'Tratar como mora' : 'Seguir cobrando'">Tratar como mora</dd>
+            <dt>Interés al cancelar antes</dt>
+            <dd th:text="${prestamo.contrato.interesCancelacion.name() == 'POR_DIAS'} ? 'Por días corridos' : 'Periodo completo'">Periodo completo</dd>
+        </dl>
+    </section>
+
 </main>
 </body>
 </html>

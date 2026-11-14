@@ -72,7 +72,9 @@ class DetallePrestamoWebTest {
                 .andExpect(content().string(containsString("En mora")))
                 .andExpect(content().string(containsString("Condonar")))
                 .andExpect(content().string(containsString("Registrar pago")))
-                .andExpect(content().string(containsString("Deshacer el último pago")));
+                .andExpect(content().string(containsString("Deshacer el último pago")))
+                .andExpect(content().string(containsString("Capital que debe")))
+                .andExpect(content().string(containsString("Próximo cobro")));
     }
 
     @Test

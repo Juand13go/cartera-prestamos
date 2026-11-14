@@ -237,6 +237,8 @@ button.peligro:hover { background: var(--mora-fondo); }
 .acciones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 section form + form { margin-top: 0; }
 section > form.no-imprimir { margin-top: 12px; }
+form.cancelar-todo { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--borde); }
+.tarjeta-resumen .detalle .etiqueta { margin-left: 4px; }
 
 /* ---------- Listas de datos (ficha del cliente, contrato) ---------- */
 .datos { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 12px 0 0; }
