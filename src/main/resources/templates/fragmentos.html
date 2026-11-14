@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<!-- Piezas que se repiten en todas las páginas. Cada página las incluye con th:replace. -->
+
+<head th:fragment="cabeza(titulo)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${titulo} + ' · Cartera'">Cartera</title>
+    <link rel="stylesheet" th:href="@{/css/estilos.css}">
+</head>
+
+<body>
+
+<header th:fragment="menu" class="menu">
+    <a class="marca" th:href="@{/}">Cartera</a>
+    <nav>
+        <a th:href="@{/}">Panel</a>
+        <a th:href="@{/clientes}">Clientes</a>
+    </nav>
+    <span class="hoy">Hoy: <strong th:text="${#temporals.format(hoy, 'dd/MM/yyyy')}">14/11/2026</strong></span>
+</header>
+
+<!-- Mensajes que dejan las acciones (pagar, deshacer...) después de redirigir. -->
+<div th:fragment="mensajes">
+    <p class="aviso exito" th:if="${exito}" th:text="${exito}">Hecho.</p>
+    <p class="aviso error" th:if="${error}" th:text="${error}">Algo salió mal.</p>
+</div>
+
+</body>
+</html>

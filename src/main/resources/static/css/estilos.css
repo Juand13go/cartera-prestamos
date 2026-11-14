@@ -1,0 +1,89 @@
+/* Estilos de la cartera: CSS simple, sin frameworks. Los colores están en variables para cambiarlos en un solo lugar. */
+:root {
+    --fondo: #f6f7f9;
+    --superficie: #ffffff;
+    --texto: #1f2933;
+    --suave: #5f6b7a;
+    --borde: #d9dee5;
+    --principal: #1f6f5c;
+    --principal-texto: #ffffff;
+    --exito: #e6f4ea;
+    --exito-texto: #1e5e2f;
+    --error: #fdecea;
+    --error-texto: #8a1c12;
+    --resaltado: #fff8e1;
+    --mora: #c62828;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--fondo);
+    color: var(--texto);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+a { color: var(--principal); }
+
+/* Menú superior */
+.menu {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 24px;
+    padding: 12px 16px;
+    background: var(--principal);
+    color: var(--principal-texto);
+}
+.menu a { color: var(--principal-texto); text-decoration: none; }
+.menu .marca { font-weight: 700; font-size: 18px; }
+.menu nav { display: flex; gap: 16px; }
+.menu .hoy { margin-left: auto; font-size: 14px; }
+
+main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+
+h1 { margin: 8px 0 16px; }
+h2 { margin: 24px 0 4px; font-size: 20px; }
+section {
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    padding: 4px 16px 16px;
+    margin-bottom: 16px;
+}
+
+.nota { color: var(--suave); font-size: 14px; margin: 0 0 12px; }
+.vacio { color: var(--suave); font-style: italic; }
+
+/* Tablas: en pantallas pequeñas se desplazan dentro de su caja, no toda la página. */
+.tabla { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 8px; border-bottom: 1px solid var(--borde); text-align: left; white-space: nowrap; }
+th { font-size: 13px; color: var(--suave); text-transform: uppercase; letter-spacing: .03em; }
+.numero { text-align: right; font-variant-numeric: tabular-nums; }
+tr.resaltada { background: var(--resaltado); }
+
+.etiqueta {
+    display: inline-block;
+    padding: 0 8px;
+    border-radius: 10px;
+    background: var(--borde);
+    font-size: 12px;
+    font-weight: 600;
+}
+.etiqueta.mora { background: var(--mora); color: #fff; }
+
+/* Mensajes después de una acción */
+.aviso { padding: 10px 14px; border-radius: 6px; margin: 0 0 16px; }
+.aviso.exito { background: var(--exito); color: var(--exito-texto); }
+.aviso.error { background: var(--error); color: var(--error-texto); }
+
+/* Al imprimir (recibos) no se muestra el menú ni los botones. */
+@media print {
+    .menu, .no-imprimir, form { display: none !important; }
+    body { background: #fff; }
+    section { border: none; }
+}

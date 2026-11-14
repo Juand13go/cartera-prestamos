@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabeza('Panel')}"></head>
+<body>
+<header th:replace="~{fragmentos :: menu}"></header>
+
+<main>
+    <h1>Panel</h1>
+    <div th:replace="~{fragmentos :: mensajes}"></div>
+
+    <section>
+        <h2>Agenda de cobros</h2>
+        <p class="nota">Próxima cuota de cada préstamo que vence entre hoy y los próximos 7 días, de la más cercana a la más lejana.</p>
+        <p th:if="${panel.agenda().estaVacia()}" class="vacio">No hay cobros en los próximos 7 días.</p>
+        <div class="tabla" th:unless="${panel.agenda().estaVacia()}">
+            <table>
+                <thead>
+                <tr><th>Fecha</th><th>Cliente</th><th>Préstamo</th><th>Cuota</th><th class="numero">Valor</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="cobro : ${panel.agenda()}" th:classappend="${cobro.esHoy()} ? 'resaltada'">
+                    <td>
+                        <span th:text="${#temporals.format(cobro.fecha(), 'dd/MM/yyyy')}">10/12/2026</span>
+                        <span th:if="${cobro.esHoy()}" class="etiqueta">hoy</span>
+                    </td>
+                    <td><a th:href="@{/clientes/{c}(c=${cobro.cedula()})}" th:text="${cobro.nombreCliente()}">Laura</a></td>
+                    <td><a th:href="@{/prestamos/{id}(id=${cobro.prestamoId()})}" th:text="'#' + ${cobro.prestamoId()}">#1</a></td>
+                    <td th:text="${cobro.numeroCuota()}">4</td>
+                    <td class="numero" th:text="'$' + ${#numbers.formatInteger(cobro.valorPendiente(), 1, 'POINT')}">$160.000</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section>
+        <h2>Lista de mora</h2>
+        <p class="nota">Préstamos con cuotas vencidas sin pagar, del más atrasado al menos atrasado. El total incluye multas.</p>
+        <p th:if="${panel.mora().estaVacia()}" class="vacio">Nadie está en mora.</p>
+        <div class="tabla" th:unless="${panel.mora().estaVacia()}">
+            <table>
+                <thead>
+                <tr><th>Días de atraso</th><th>Cliente</th><th>Préstamo</th><th>Cuotas vencidas</th><th class="numero">Total vencido</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="atrasado : ${panel.mora()}">
+                    <td><span class="etiqueta mora" th:text="${atrasado.diasDeAtraso()}">40</span></td>
+                    <td><a th:href="@{/clientes/{c}(c=${atrasado.cedula()})}" th:text="${atrasado.nombreCliente()}">Carlos</a></td>
+                    <td><a th:href="@{/prestamos/{id}(id=${atrasado.prestamoId()})}" th:text="'#' + ${atrasado.prestamoId()}">#3</a></td>
+                    <td th:text="${atrasado.cuotasVencidas()}">2</td>
+                    <td class="numero" th:text="'$' + ${#numbers.formatInteger(atrasado.totalVencido(), 1, 'POINT')}">$390.000</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+</body>
+</html>
