@@ -3,6 +3,7 @@ package io.github.juand13go.cartera.dominio.modelo;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import io.github.juand13go.cartera.dominio.politicas.AlVencerPlazo;
 import io.github.juand13go.cartera.dominio.politicas.Calendario;
 import io.github.juand13go.cartera.dominio.politicas.Frecuencia;
 import io.github.juand13go.cartera.dominio.politicas.FrecuenciaMensual;
@@ -32,6 +33,7 @@ public class Contrato {
     private final PoliticaMora politicaMora;
     private final int diasDeGracia;
     private final OrdenImputacion ordenImputacion;
+    private final AlVencerPlazo alVencerPlazo;
 
     /**
      * Empieza un borrador con lo que no tiene valor por defecto.
@@ -54,7 +56,7 @@ public class Contrato {
         }
         if (borrador.baseInteres == null || borrador.fechaDesembolso == null || borrador.frecuencia == null
                 || borrador.calendario == null || borrador.politicaMora == null
-                || borrador.ordenImputacion == null) {
+                || borrador.ordenImputacion == null || borrador.alVencerPlazo == null) {
             throw new IllegalArgumentException("Faltan condiciones del contrato");
         }
         if (borrador.diasDeGracia < 0) {
@@ -69,6 +71,7 @@ public class Contrato {
         this.politicaMora = borrador.politicaMora;
         this.diasDeGracia = borrador.diasDeGracia;
         this.ordenImputacion = borrador.ordenImputacion;
+        this.alVencerPlazo = borrador.alVencerPlazo;
     }
 
     public BigDecimal getCapital() {
@@ -107,6 +110,10 @@ public class Contrato {
         return ordenImputacion;
     }
 
+    public AlVencerPlazo getAlVencerPlazo() {
+        return alVencerPlazo;
+    }
+
     /** Fecha en que vence la cuota número {@code numeroCuota}: la de la frecuencia, ajustada al calendario. */
     public LocalDate fechaVencimiento(int numeroCuota) {
         return calendario.ajustar(frecuencia.fechaVencimiento(fechaDesembolso, numeroCuota));
@@ -136,6 +143,7 @@ public class Contrato {
         private PoliticaMora politicaMora = new SinMulta();
         private int diasDeGracia = 2;
         private OrdenImputacion ordenImputacion = OrdenImputacion.MULTAS_PRIMERO;
+        private AlVencerPlazo alVencerPlazo = AlVencerPlazo.TRATAR_COMO_MORA;
 
         private Borrador(BigDecimal capital, BigDecimal tasaPorPeriodo, LocalDate fechaDesembolso) {
             this.capital = capital;
@@ -174,6 +182,11 @@ public class Contrato {
 
         public Borrador ordenImputacion(OrdenImputacion ordenImputacion) {
             this.ordenImputacion = ordenImputacion;
+            return this;
+        }
+
+        public Borrador alVencerPlazo(AlVencerPlazo alVencerPlazo) {
+            this.alVencerPlazo = alVencerPlazo;
             return this;
         }
 

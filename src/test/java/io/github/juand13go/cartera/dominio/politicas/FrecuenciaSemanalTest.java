@@ -51,4 +51,9 @@ class FrecuenciaSemanalTest {
         assertThrows(IllegalArgumentException.class,
                 () -> new FrecuenciaSemanal(DayOfWeek.TUESDAY).fechaVencimiento(DESEMBOLSO_MARTES, 0));
     }
+
+    @Test
+    void elPlazoMaximoSon104CuotasSemanales() {
+        assertEquals(104, new FrecuenciaSemanal(DayOfWeek.TUESDAY).cuotasEnPlazoMaximo());
+    }
 }

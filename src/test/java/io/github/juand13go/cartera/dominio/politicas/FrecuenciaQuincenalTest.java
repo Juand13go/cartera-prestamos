@@ -46,4 +46,9 @@ class FrecuenciaQuincenalTest {
         assertThrows(IllegalArgumentException.class,
                 () -> quincenal.fechaVencimiento(LocalDate.of(2026, 11, 15), 0));
     }
+
+    @Test
+    void elPlazoMaximoSon48CuotasQuincenales() {
+        assertEquals(48, quincenal.cuotasEnPlazoMaximo());
+    }
 }

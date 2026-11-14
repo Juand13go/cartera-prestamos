@@ -22,6 +22,12 @@ public class FrecuenciaMensual implements Frecuencia {
         return diaDeCobro;
     }
 
+    /** 24 meses = 24 cuotas mensuales. */
+    @Override
+    public int cuotasEnPlazoMaximo() {
+        return 24;
+    }
+
     @Override
     public LocalDate fechaVencimiento(LocalDate desembolso, int numeroCuota) {
         if (numeroCuota < 1) {

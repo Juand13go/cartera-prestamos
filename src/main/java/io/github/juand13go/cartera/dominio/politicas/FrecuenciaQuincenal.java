@@ -16,6 +16,12 @@ public class FrecuenciaQuincenal implements Frecuencia {
 
     private static final int DIAS_MINIMOS_PRIMER_PERIODO = 15;
 
+    /** 24 meses × 2 cortes = 48 cuotas quincenales. */
+    @Override
+    public int cuotasEnPlazoMaximo() {
+        return 48;
+    }
+
     @Override
     public LocalDate fechaVencimiento(LocalDate desembolso, int numeroCuota) {
         if (numeroCuota < 1) {

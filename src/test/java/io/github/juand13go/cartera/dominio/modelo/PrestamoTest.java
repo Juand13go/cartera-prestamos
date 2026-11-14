@@ -10,6 +10,7 @@ import java.time.LocalDate;
 
 import org.junit.jupiter.api.Test;
 
+import io.github.juand13go.cartera.dominio.politicas.AlVencerPlazo;
 import io.github.juand13go.cartera.dominio.politicas.Calendario;
 import io.github.juand13go.cartera.dominio.politicas.FrecuenciaMensual;
 import io.github.juand13go.cartera.dominio.politicas.MultaFijaDiaria;
@@ -443,6 +444,105 @@ class PrestamoTest {
         Prestamo prestamo = prestamoCaso1(BaseInteres.CAPITAL_INICIAL);
 
         assertThrows(IllegalStateException.class, prestamo::deshacerUltimoPago);
+    }
+
+    // Plazo máximo (caso 1: la cuota 24 vence el 10 nov 2028; la 23, el 10 oct 2028)
+
+    private static final LocalDate DIA_DESPUES_CUOTA_23 = LocalDate.of(2028, 10, 11);
+    private static final LocalDate DIA_DESPUES_CUOTA_24 = LocalDate.of(2028, 11, 11);
+
+    private static Prestamo prestamoCaso1(BaseInteres base, AlVencerPlazo alVencer) {
+        Contrato contrato = Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO_CASO_1)
+                .base(base)
+                .alVencerPlazo(alVencer)
+                .firmar();
+        return new Prestamo("1007", contrato);
+    }
+
+    @Test
+    void laCuota24IncluyeTodoElCapitalPendiente() {
+        Prestamo prestamo = prestamoCaso1(BaseInteres.CAPITAL_INICIAL);
+
+        prestamo.actualizarCronograma(DIA_DESPUES_CUOTA_23);
+
+        Cuota ultima = prestamo.getCronograma().ultimo();
+        assertEquals(24, ultima.getNumero());
+        assertEquals(LocalDate.of(2028, 11, 10), ultima.getFechaVencimiento());
+        assertEquals(pesos("2160000"), ultima.getValor());
+        assertEquals(pesos("2000000"), ultima.getCapitalIncluido());
+        // El capital pasó a la cuota: el préstamo ya no tiene capital aparte, pero sigue abierto.
+        assertEquals(pesos("0"), prestamo.getCapitalPendiente());
+        assertEquals(pesos("2000000"), prestamo.capitalAdeudado());
+        assertFalse(prestamo.estaCerrado());
+    }
+
+    @Test
+    void tratarComoMoraNoGeneraMasCuotasYLaUltimaQuedaEnMora() {
+        Prestamo prestamo = prestamoCaso1(BaseInteres.CAPITAL_INICIAL, AlVencerPlazo.TRATAR_COMO_MORA);
+
+        prestamo.actualizarCronograma(LocalDate.of(2029, 1, 1));
+
+        assertEquals(24, prestamo.getCronograma().tamano());
+        assertEquals(EstadoCuota.MORA, prestamo.getCronograma().ultimo().estado(LocalDate.of(2029, 1, 1)));
+    }
+
+    @Test
+    void seguirCobrandoGeneraUnaCuotaDeInteresDespuesDelPlazo() {
+        Prestamo prestamo = prestamoCaso1(BaseInteres.CAPITAL_INICIAL, AlVencerPlazo.SEGUIR_COBRANDO);
+
+        prestamo.actualizarCronograma(DIA_DESPUES_CUOTA_24);
+
+        Cuota cuota25 = prestamo.getCronograma().ultimo();
+        assertEquals(25, cuota25.getNumero());
+        assertEquals(LocalDate.of(2028, 12, 10), cuota25.getFechaVencimiento());
+        assertEquals(pesos("160000"), cuota25.getValor());
+        assertEquals(pesos("0"), cuota25.getCapitalIncluido());
+    }
+
+    @Test
+    void seguirCobrandoConCapitalVigenteCobraInteresSobreElCapitalSinPagar() {
+        Prestamo prestamo = prestamoCaso1(BaseInteres.CAPITAL_VIGENTE, AlVencerPlazo.SEGUIR_COBRANDO);
+        // Paga las cuotas 1 a 23 (23 × 160.000), el interés de la 24 y 1.000.000 del capital.
+        prestamo.registrarPago(DIA_DESPUES_CUOTA_23, pesos("4840000"));
+
+        prestamo.actualizarCronograma(DIA_DESPUES_CUOTA_24);
+
+        assertEquals(pesos("1000000"), prestamo.capitalAdeudado());
+        // 1.000.000 × 8 % = 80.000
+        assertEquals(pesos("80000"), prestamo.getCronograma().ultimo().getValor());
+    }
+
+    @Test
+    void pagarLaCuota24CierraElPrestamoYNoSigueCobrando() {
+        Prestamo prestamo = prestamoCaso1(BaseInteres.CAPITAL_INICIAL, AlVencerPlazo.SEGUIR_COBRANDO);
+
+        // 23 × 160.000 + 2.160.000
+        prestamo.registrarPago(DIA_DESPUES_CUOTA_23, pesos("5840000"));
+        prestamo.actualizarCronograma(LocalDate.of(2029, 1, 1));
+
+        assertTrue(prestamo.estaCerrado());
+        assertEquals(24, prestamo.getCronograma().tamano());
+    }
+
+    @Test
+    void conCuotasPrimeroElPrestamoNoSeCierraHastaPagarLaMultaDeLaUltimaCuota() {
+        Contrato contrato = Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO_CASO_1)
+                .mora(new MultaFijaDiaria(pesos("2000")))
+                .ordenImputacion(OrdenImputacion.CUOTAS_PRIMERO)
+                .firmar();
+        Prestamo prestamo = new Prestamo("1008", contrato);
+        // Paga las cuotas 1 a 23 el día de su vencimiento, sin multas.
+        for (int numero = 1; numero <= 23; numero++) {
+            prestamo.registrarPago(contrato.fechaVencimiento(numero), pesos("160000"));
+        }
+
+        // La cuota 24 vence el 10 nov 2028; la paga el 15 nov: 3 días con multa = 6.000.
+        prestamo.registrarPago(LocalDate.of(2028, 11, 15), pesos("2160000"));
+        assertTrue(prestamo.getCronograma().ultimo().estaCubierta());
+        assertFalse(prestamo.estaCerrado());
+
+        prestamo.registrarPago(LocalDate.of(2028, 11, 15), pesos("6000"));
+        assertTrue(prestamo.estaCerrado());
     }
 
     // Cierre

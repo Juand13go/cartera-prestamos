@@ -14,4 +14,7 @@ public interface Frecuencia {
      * en un mes (por ejemplo, febrero) no se arrastre a los siguientes.
      */
     LocalDate fechaVencimiento(LocalDate desembolso, int numeroCuota);
+
+    /** Cuántas cuotas caben en el plazo máximo de 24 meses con esta frecuencia. La última incluye el capital. */
+    int cuotasEnPlazoMaximo();
 }

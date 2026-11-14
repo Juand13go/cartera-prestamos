@@ -26,6 +26,12 @@ public class FrecuenciaSemanal implements Frecuencia {
         return diaDeCobro;
     }
 
+    /** 24 meses son unas 104 semanas (52 por año). */
+    @Override
+    public int cuotasEnPlazoMaximo() {
+        return 104;
+    }
+
     @Override
     public LocalDate fechaVencimiento(LocalDate desembolso, int numeroCuota) {
         if (numeroCuota < 1) {

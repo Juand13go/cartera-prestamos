@@ -170,4 +170,35 @@ class CuotaTest {
 
         assertThrows(IllegalStateException.class, () -> cuota.condonarMulta(BigDecimal.ZERO));
     }
+
+    // Cuota con capital (la última del plazo)
+
+    @Test
+    void unaCuotaNormalNoIncluyeCapital() {
+        Cuota cuota = cuotaDeFebrero();
+
+        assertEquals(BigDecimal.ZERO, cuota.getCapitalIncluido());
+        assertEquals(new BigDecimal("160000"), cuota.getInteres());
+        assertEquals(BigDecimal.ZERO, cuota.capitalSinPagar());
+    }
+
+    @Test
+    void laCuotaConCapitalValeInteresMasCapital() {
+        Cuota ultima = new Cuota(24, LocalDate.of(2028, 11, 10), new BigDecimal("160000"), new BigDecimal("2000000"));
+
+        assertEquals(new BigDecimal("2160000"), ultima.getValor());
+        assertEquals(new BigDecimal("160000"), ultima.getInteres());
+        assertEquals(new BigDecimal("2000000"), ultima.getCapitalIncluido());
+    }
+
+    @Test
+    void dentroDeLaCuotaSePagaPrimeroElInteres() {
+        Cuota ultima = new Cuota(24, LocalDate.of(2028, 11, 10), new BigDecimal("160000"), new BigDecimal("2000000"));
+
+        ultima.cubrir(new BigDecimal("100000"), LocalDate.of(2028, 11, 1));
+        assertEquals(new BigDecimal("2000000"), ultima.capitalSinPagar());
+
+        ultima.cubrir(new BigDecimal("1060000"), LocalDate.of(2028, 11, 2));
+        assertEquals(new BigDecimal("1000000"), ultima.capitalSinPagar());
+    }
 }

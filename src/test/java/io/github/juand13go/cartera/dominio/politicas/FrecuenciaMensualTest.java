@@ -72,4 +72,9 @@ class FrecuenciaMensualTest {
         assertThrows(IllegalArgumentException.class,
                 () -> mensual.fechaVencimiento(LocalDate.of(2026, 11, 10), 0));
     }
+
+    @Test
+    void elPlazoMaximoSon24CuotasMensuales() {
+        assertEquals(24, new FrecuenciaMensual(10).cuotasEnPlazoMaximo());
+    }
 }

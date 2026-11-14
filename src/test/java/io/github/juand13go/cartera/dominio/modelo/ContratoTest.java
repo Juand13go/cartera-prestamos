@@ -11,6 +11,7 @@ import java.time.LocalDate;
 
 import org.junit.jupiter.api.Test;
 
+import io.github.juand13go.cartera.dominio.politicas.AlVencerPlazo;
 import io.github.juand13go.cartera.dominio.politicas.Calendario;
 import io.github.juand13go.cartera.dominio.politicas.Frecuencia;
 import io.github.juand13go.cartera.dominio.politicas.FrecuenciaMensual;
@@ -42,6 +43,7 @@ class ContratoTest {
         assertTrue(contrato.getPoliticaMora() instanceof SinMulta);
         assertEquals(2, contrato.getDiasDeGracia());
         assertEquals(OrdenImputacion.MULTAS_PRIMERO, contrato.getOrdenImputacion());
+        assertEquals(AlVencerPlazo.TRATAR_COMO_MORA, contrato.getAlVencerPlazo());
     }
 
     @Test
@@ -97,6 +99,8 @@ class ContratoTest {
                 () -> Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO).mora(null).firmar());
         assertThrows(IllegalArgumentException.class,
                 () -> Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO).ordenImputacion(null).firmar());
+        assertThrows(IllegalArgumentException.class,
+                () -> Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO).alVencerPlazo(null).firmar());
     }
 
     // Multa con días de gracia: cuota de $160.000 que vence el 10 de febrero, 2 días de gracia

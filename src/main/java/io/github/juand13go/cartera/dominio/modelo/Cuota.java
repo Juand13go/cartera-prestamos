@@ -12,15 +12,26 @@ public class Cuota {
     private final int numero;
     private final LocalDate fechaVencimiento;
     private final BigDecimal valor;
+    private final BigDecimal capitalIncluido;
     private BigDecimal valorCubierto;
     private LocalDate fechaCubierta;
     private BigDecimal multaPagada;
     private BigDecimal multaCondonadaEn;
 
+    /** Cuota normal del rédito: solo interés. */
     public Cuota(int numero, LocalDate fechaVencimiento, BigDecimal valor) {
+        this(numero, fechaVencimiento, valor, BigDecimal.ZERO);
+    }
+
+    /**
+     * Cuota que además del interés incluye capital (la última del plazo).
+     * Su valor es interés + capital.
+     */
+    public Cuota(int numero, LocalDate fechaVencimiento, BigDecimal interes, BigDecimal capitalIncluido) {
         this.numero = numero;
         this.fechaVencimiento = fechaVencimiento;
-        this.valor = valor;
+        this.valor = interes.add(capitalIncluido);
+        this.capitalIncluido = capitalIncluido;
         this.valorCubierto = BigDecimal.ZERO;
         this.fechaCubierta = null;
         this.multaPagada = BigDecimal.ZERO;
@@ -37,6 +48,24 @@ public class Cuota {
 
     public BigDecimal getValor() {
         return valor;
+    }
+
+    /** Parte del valor que es capital; 0 en todas las cuotas menos la última del plazo. */
+    public BigDecimal getCapitalIncluido() {
+        return capitalIncluido;
+    }
+
+    /** Parte del valor que es interés. */
+    public BigDecimal getInteres() {
+        return valor.subtract(capitalIncluido);
+    }
+
+    /**
+     * Cuánto del capital incluido falta por pagar. Dentro de la cuota se paga primero el interés,
+     * así que lo que falta es capital hasta donde alcance.
+     */
+    public BigDecimal capitalSinPagar() {
+        return saldoPendiente().min(capitalIncluido);
     }
 
     public BigDecimal getValorCubierto() {

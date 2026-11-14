@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import io.github.juand13go.cartera.dominio.estructuras.ListaDoble;
 import io.github.juand13go.cartera.dominio.estructuras.Pila;
 import io.github.juand13go.cartera.dominio.estructuras.TablaHash;
+import io.github.juand13go.cartera.dominio.politicas.AlVencerPlazo;
 import io.github.juand13go.cartera.dominio.politicas.OrdenImputacion;
 
 /**
@@ -18,8 +19,10 @@ import io.github.juand13go.cartera.dominio.politicas.OrdenImputacion;
  * el día después de que esa vence.
  *
  * Los pagos son al préstamo, no a una cuota: el préstamo los reparte entre multas,
- * cuotas y capital, en el orden que diga el contrato. El capital siempre va de último,
- * así que cuando llega a 0 ya no se debe nada y el préstamo queda cerrado.
+ * cuotas y capital, en el orden que diga el contrato. Lo que sobra va a capital.
+ *
+ * Plazo máximo: la última cuota del plazo (24 meses) incluye todo el capital pendiente.
+ * El préstamo queda cerrado cuando no queda capital ni cuotas ni multas por pagar.
  *
  * Un préstamo es su contrato más sus pagos en orden: aplicar los mismos pagos en el mismo
  * orden siempre produce el mismo estado. Por eso deshacer es sacar el último pago de la pila
@@ -81,8 +84,36 @@ public class Prestamo {
         return pagos;
     }
 
+    /**
+     * Cerrado = no se debe nada: ni capital, ni cuotas, ni multas.
+     * Las multas de una cuota cubierta ya no cambian (quedaron congeladas el día en que se cubrió),
+     * por eso se consultan con esa fecha.
+     */
     public boolean estaCerrado() {
-        return capitalPendiente.compareTo(BigDecimal.ZERO) == 0;
+        if (capitalPendiente.compareTo(BigDecimal.ZERO) > 0) {
+            return false;
+        }
+        for (Cuota cuota : cronograma) {
+            if (!cuota.estaCubierta()) {
+                return false;
+            }
+            if (saldoMulta(cuota, cuota.getFechaCubierta()).compareTo(BigDecimal.ZERO) > 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Todo el capital que el cliente todavía debe: el pendiente más el que ya se pasó
+     * a la última cuota del plazo y no se ha pagado.
+     */
+    public BigDecimal capitalAdeudado() {
+        BigDecimal total = capitalPendiente;
+        for (Cuota cuota : cronograma) {
+            total = total.add(cuota.capitalSinPagar());
+        }
+        return total;
     }
 
     /** Lo que falta pagar de la multa de una cuota a la fecha {@code hoy}. */
@@ -120,12 +151,29 @@ public class Prestamo {
 
     /**
      * Genera las cuotas que ya deberían existir a la fecha {@code hoy}:
-     * mientras el préstamo esté activo y la última cuota ya esté vencida, agrega la siguiente.
+     * mientras el préstamo esté activo, la última cuota ya esté vencida y el plazo lo permita, agrega la siguiente.
      */
     public void actualizarCronograma(LocalDate hoy) {
-        while (!estaCerrado() && hoy.isAfter(cronograma.ultimo().getFechaVencimiento())) {
+        while (!estaCerrado() && hoy.isAfter(cronograma.ultimo().getFechaVencimiento())
+                && quedanCuotasPorGenerar()) {
             agregarSiguienteCuota();
         }
+    }
+
+    /**
+     * Dentro del plazo siempre hay una cuota más. Después del plazo, solo si el contrato dice
+     * SEGUIR_COBRANDO y todavía queda capital sin pagar.
+     */
+    private boolean quedanCuotasPorGenerar() {
+        if (cronograma.tamano() < cuotasDelPlazo()) {
+            return true;
+        }
+        return contrato.getAlVencerPlazo() == AlVencerPlazo.SEGUIR_COBRANDO
+                && capitalAdeudado().compareTo(BigDecimal.ZERO) > 0;
+    }
+
+    private int cuotasDelPlazo() {
+        return contrato.getFrecuencia().cuotasEnPlazoMaximo();
     }
 
     /**
@@ -251,11 +299,22 @@ public class Prestamo {
         }
     }
 
-    /** Agrega al final del cronograma la cuota del periodo siguiente. */
+    /**
+     * Agrega al final del cronograma la cuota del periodo siguiente.
+     * Si es la última del plazo, además del interés incluye todo el capital pendiente,
+     * que pasa del préstamo a la cuota.
+     */
     private void agregarSiguienteCuota() {
         int numero = cronograma.tamano() + 1;
         LocalDate vence = contrato.fechaVencimiento(numero);
-        Cuota cuota = new Cuota(numero, vence, interesDelPeriodo());
+        BigDecimal interes = interesDelPeriodo();
+        Cuota cuota;
+        if (numero == cuotasDelPlazo()) {
+            cuota = new Cuota(numero, vence, interes, capitalPendiente);
+            capitalPendiente = BigDecimal.ZERO;
+        } else {
+            cuota = new Cuota(numero, vence, interes);
+        }
         BigDecimal condonadaEn = condonaciones.buscar(numero);
         if (condonadaEn != null) {
             cuota.condonarMulta(condonadaEn);
@@ -269,7 +328,7 @@ public class Prestamo {
         if (contrato.getBaseInteres() == BaseInteres.CAPITAL_INICIAL) {
             base = contrato.getCapital();
         } else {
-            base = capitalPendiente;
+            base = capitalAdeudado();
         }
         return base.multiply(contrato.getTasaPorPeriodo()).divide(CIEN, 0, RoundingMode.HALF_UP);
     }
