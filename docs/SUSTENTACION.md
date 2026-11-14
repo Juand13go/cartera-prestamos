@@ -709,3 +709,116 @@ número n con el registro número n.
 No. Después de cualquier POST el controlador responde con una redirección (patrón POST → redirigir → GET): el navegador
 termina en la página del recibo, que es un GET. Recargar vuelve a pedir el recibo, no repite el pago. Si de todas formas
 se registrara un pago por error, está el botón de deshacer el último pago, que lo saca de la pila y recalcula el préstamo.
+
+---
+
+## Hito 6: Login, roles y portal del cliente
+
+### Qué se construyó
+
+| Pieza | Clases | Qué hace |
+|---|---|---|
+| Iniciar sesión | `IniciarSesion`, `UsuarioSesion`, `Rol` | Prestamista: usuario y contraseña de la configuración. Cliente: cédula (buscada en la `TablaHash`) y PIN |
+| Sesión HTTP | `SesionWeb`, `LoginControlador`, `login.html` | Guarda quién entró; al entrar descarta la sesión anterior; salir la cierra |
+| Protección en el backend | `InterceptorRoles`, `ConfiguracionWeb`, `error/403.html` | Revisa cada petición antes del controlador (lista blanca) |
+| Portal del cliente | `PortalClienteControlador`, `mis-prestamos.html`, `mi-prestamo.html` | Solo lectura: sus préstamos, progreso, próximo cobro, valor para estar al día, recibos |
+| Simulador | `SimularAbono`, `ResultadoSimulacion` | "Si abono $X hoy": reparto, nuevo capital y, con capital vigente, nuevo interés |
+| Cálculos del dominio | `Prestamo.valorParaEstarAlDia`, `proximaCuotaPendiente`, `porcentajeDeCapitalPagado`, `interesProximaCuota` | Lo que muestra el portal |
+
+Pruebas al cerrar el hito: 327 (42 nuevas).
+
+### Usuarios para entrar
+
+| Rol | Cómo entra | Datos de prueba |
+|---|---|---|
+| Prestamista | usuario + contraseña | `prestamista` / `cartera2026` |
+| Cliente | cédula + PIN | `1000000001` a `1000000004`, PIN `1234` |
+
+### Contraseñas y PIN: solo hashes BCrypt
+
+- La contraseña del prestamista no está escrita en ninguna parte: en `application.properties` solo está su hash BCrypt
+  (`app.prestamista.clave-cifrada`). Se cambia con las variables `PRESTAMISTA_USUARIO` y `PRESTAMISTA_CLAVE_CIFRADA`.
+- Los PIN de los clientes se guardan en la base de datos solo como hash.
+- BCrypt es de una sola vía (no se puede sacar la clave del hash, solo comprobar si coincide), usa una "sal"
+  aleatoria (el mismo PIN da un hash distinto cada vez) y es lento a propósito (adivinar por fuerza bruta es costoso).
+- Si algo no coincide, el mensaje es siempre "Usuario o clave incorrectos": no revela si existe la cédula o el usuario.
+- Se usa solo `spring-security-crypto` (la librería de BCrypt), no Spring Security completo.
+
+### La sesión
+
+- Al entrar se guarda un `UsuarioSesion` (rol, cédula, nombre) en la sesión HTTP.
+- **Fijación de sesión:** al entrar se invalida la sesión anterior y se crea una nueva, para que nadie pueda "plantar"
+  un identificador de sesión antes del login y usarlo después.
+- **Solo cookie:** `server.servlet.session.tracking-modes=cookie`. Sin esto, Tomcat pegaba `;jsessionid=...` a la
+  dirección en la primera respuesta: el identificador se filtraba al copiar enlaces y, además, el interceptor bloqueaba
+  por error al cliente recién entrado (`"/mis-prestamos;jsessionid=…"` no es igual a `"/mis-prestamos"`). Lo encontramos
+  probando la aplicación real, no en las pruebas automáticas.
+
+### El interceptor de roles (lo más importante del hito)
+
+`InterceptorRoles` implementa `HandlerInterceptor`. Su `preHandle` corre **antes** de cada controlador; si devuelve
+`false`, la petición no llega a él. Está registrado para `/**` excepto `/login`, `/css` y `/error`.
+
+| Quién | Pasa | Si no |
+|---|---|---|
+| Sin sesión | — | redirige a `/login` |
+| Prestamista | todo | 403 en `/mis-prestamos` |
+| Cliente | GET `/mis-prestamos`; GET `/mis-prestamos/{id}/...` **solo si el préstamo es suyo**; POST `/salir` | **403** |
+
+- **Por qué en el backend:** ocultar botones no protege nada. Un cliente puede escribir `/prestamos/3` o mandar un POST
+  con `curl`. Las pruebas del interceptor envían esas peticiones directamente y verifican que la respuesta sea 403 y que
+  no se haya guardado nada.
+- **Por qué lista blanca:** se permite solo lo que está en la lista. Una pantalla nueva del prestamista queda bloqueada
+  para el cliente automáticamente, sin tener que acordarse de prohibirla.
+- **Préstamos ajenos:** para `/mis-prestamos/{id}`, el interceptor lee el préstamo y compara su cédula con la de la sesión.
+  Si no existe también responde 403, para no revelar qué números de préstamo existen.
+
+### El portal del cliente
+
+- **Barra de progreso** = capital devuelto ÷ capital prestado. En rédito las cuotas son solo interés; el avance real es
+  el capital que se ha devuelto. Un préstamo cerrado está al 100 %.
+- **Próxima fecha de cobro** = la primera cuota sin cubrir.
+- **Para estar al día hoy** = cuotas que vencen hasta hoy (incluida la de hoy) sin pagar + multas pendientes.
+- **Para cancelar todo hoy** = el mismo `valorParaCancelar` del prestamista (respeta el interés por días si el contrato lo dice).
+- **Recibos:** la misma plantilla del prestamista, sin el botón de WhatsApp.
+- Todo es GET: el cliente nunca envía datos para guardar.
+
+### El simulador
+
+`SimularAbono` carga una **copia** del préstamo recién reconstruida desde la base de datos, aplica el abono con el mismo
+`registrarPago` de un pago real y lee el capital y el interés de la próxima cuota antes y después. La copia se descarta:
+no se guarda nada. Por eso es una consulta (GET) y un cliente de solo lectura puede usarla, y el resultado es exactamente
+el que daría el pago real. Ejemplo (caso 2, capital vigente): abonar 660.000 el 10 ene → capital de 2.000.000 a 1.500.000
+e interés de la próxima cuota de 160.000 a 120.000. Con capital inicial, el interés no cambia.
+
+### Complejidad
+
+| Operación | Complejidad | Por qué |
+|---|---|---|
+| Login del cliente | O(1) + BCrypt | búsqueda en la tabla hash; BCrypt es lento a propósito (constante) |
+| Revisar una petición del prestamista | O(1) | solo mira la ruta |
+| Revisar `/mis-prestamos/{id}` de un cliente | O(p × n) | reconstruye el préstamo para saber de quién es |
+| Simular un abono | O(p × n) | reconstruye la copia y aplica un pago |
+
+### Preguntas que podría hacer el profesor
+
+**1. Si un cliente conoce la dirección para registrar pagos, ¿puede registrar uno?**
+
+No. Toda petición pasa primero por `InterceptorRoles`, antes de llegar a cualquier controlador. Para un cliente, cualquier
+método distinto de GET responde 403 (salvo cerrar su sesión), sin importar si el botón se ve o no en la página. Las pruebas
+mandan el POST directamente (como lo haría alguien con `curl`) y comprueban que la respuesta es 403 y que el préstamo
+sigue con los mismos pagos. Ocultar el botón en la vista es solo comodidad; la protección real está en el servidor.
+
+**2. ¿Cómo evitan que un cliente vea el préstamo de otro cambiando el número en la dirección?**
+
+Para las direcciones `/mis-prestamos/{id}`, el interceptor lee ese préstamo y compara su cédula con la cédula guardada en
+la sesión; si no coinciden, responde 403. Si el préstamo no existe, también responde 403, para no dar pistas de qué números
+existen. Además, al cliente no se le permite ninguna ruta del prestamista (`/prestamos/...`, `/clientes/...`), ni siquiera
+la de su propio préstamo.
+
+**3. ¿Dónde está guardada la contraseña del prestamista? ¿Y el PIN de los clientes?**
+
+En ninguna parte en texto plano. La configuración tiene solo el hash BCrypt de la contraseña, y la base de datos solo el
+hash de cada PIN. Al entrar, BCrypt calcula si lo que se escribió corresponde a ese hash; no hay forma de obtener la clave
+original a partir del hash. Como BCrypt agrega una sal aleatoria, dos clientes con el mismo PIN tienen hashes distintos, y
+como es lento a propósito, probar miles de PIN por fuerza bruta resulta costoso.
