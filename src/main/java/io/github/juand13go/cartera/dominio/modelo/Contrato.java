@@ -7,6 +7,7 @@ import io.github.juand13go.cartera.dominio.politicas.AlVencerPlazo;
 import io.github.juand13go.cartera.dominio.politicas.Calendario;
 import io.github.juand13go.cartera.dominio.politicas.Frecuencia;
 import io.github.juand13go.cartera.dominio.politicas.FrecuenciaMensual;
+import io.github.juand13go.cartera.dominio.politicas.InteresCancelacion;
 import io.github.juand13go.cartera.dominio.politicas.OrdenImputacion;
 import io.github.juand13go.cartera.dominio.politicas.PoliticaMora;
 import io.github.juand13go.cartera.dominio.politicas.SinMulta;
@@ -34,6 +35,7 @@ public class Contrato {
     private final int diasDeGracia;
     private final OrdenImputacion ordenImputacion;
     private final AlVencerPlazo alVencerPlazo;
+    private final InteresCancelacion interesCancelacion;
 
     /**
      * Empieza un borrador con lo que no tiene valor por defecto.
@@ -56,7 +58,8 @@ public class Contrato {
         }
         if (borrador.baseInteres == null || borrador.fechaDesembolso == null || borrador.frecuencia == null
                 || borrador.calendario == null || borrador.politicaMora == null
-                || borrador.ordenImputacion == null || borrador.alVencerPlazo == null) {
+                || borrador.ordenImputacion == null || borrador.alVencerPlazo == null
+                || borrador.interesCancelacion == null) {
             throw new IllegalArgumentException("Faltan condiciones del contrato");
         }
         if (borrador.diasDeGracia < 0) {
@@ -72,6 +75,7 @@ public class Contrato {
         this.diasDeGracia = borrador.diasDeGracia;
         this.ordenImputacion = borrador.ordenImputacion;
         this.alVencerPlazo = borrador.alVencerPlazo;
+        this.interesCancelacion = borrador.interesCancelacion;
     }
 
     public BigDecimal getCapital() {
@@ -114,6 +118,10 @@ public class Contrato {
         return alVencerPlazo;
     }
 
+    public InteresCancelacion getInteresCancelacion() {
+        return interesCancelacion;
+    }
+
     /** Fecha en que vence la cuota número {@code numeroCuota}: la de la frecuencia, ajustada al calendario. */
     public LocalDate fechaVencimiento(int numeroCuota) {
         return calendario.ajustar(frecuencia.fechaVencimiento(fechaDesembolso, numeroCuota));
@@ -144,6 +152,7 @@ public class Contrato {
         private int diasDeGracia = 2;
         private OrdenImputacion ordenImputacion = OrdenImputacion.MULTAS_PRIMERO;
         private AlVencerPlazo alVencerPlazo = AlVencerPlazo.TRATAR_COMO_MORA;
+        private InteresCancelacion interesCancelacion = InteresCancelacion.PERIODO_COMPLETO;
 
         private Borrador(BigDecimal capital, BigDecimal tasaPorPeriodo, LocalDate fechaDesembolso) {
             this.capital = capital;
@@ -187,6 +196,11 @@ public class Contrato {
 
         public Borrador alVencerPlazo(AlVencerPlazo alVencerPlazo) {
             this.alVencerPlazo = alVencerPlazo;
+            return this;
+        }
+
+        public Borrador interesCancelacion(InteresCancelacion interesCancelacion) {
+            this.interesCancelacion = interesCancelacion;
             return this;
         }
 

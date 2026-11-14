@@ -10,9 +10,11 @@ import java.time.LocalDate;
 
 import org.junit.jupiter.api.Test;
 
+import io.github.juand13go.cartera.dominio.estructuras.ListaDoble;
 import io.github.juand13go.cartera.dominio.politicas.AlVencerPlazo;
 import io.github.juand13go.cartera.dominio.politicas.Calendario;
 import io.github.juand13go.cartera.dominio.politicas.FrecuenciaMensual;
+import io.github.juand13go.cartera.dominio.politicas.InteresCancelacion;
 import io.github.juand13go.cartera.dominio.politicas.MultaFijaDiaria;
 import io.github.juand13go.cartera.dominio.politicas.OrdenImputacion;
 
@@ -543,6 +545,121 @@ class PrestamoTest {
 
         prestamo.registrarPago(LocalDate.of(2028, 11, 15), pesos("6000"));
         assertTrue(prestamo.estaCerrado());
+    }
+
+    // Cancelación anticipada (caso 1: el primer periodo va del 10 nov al 10 dic, 30 días)
+
+    private static final LocalDate VEINTICINCO_NOV = LocalDate.of(2026, 11, 25);
+
+    private static Prestamo prestamoCaso1(InteresCancelacion interes) {
+        Contrato contrato = Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO_CASO_1)
+                .interesCancelacion(interes)
+                .firmar();
+        return new Prestamo("1009", contrato);
+    }
+
+    @Test
+    void conPeriodoCompletoCancelarCobraElInteresDeTodoElPeriodo() {
+        Prestamo prestamo = prestamoCaso1(InteresCancelacion.PERIODO_COMPLETO);
+
+        assertEquals(pesos("2160000"), prestamo.valorParaCancelar(VEINTICINCO_NOV));
+    }
+
+    @Test
+    void porDiasCancelarCobraSoloLosDiasCorridos() {
+        Prestamo prestamo = prestamoCaso1(InteresCancelacion.POR_DIAS);
+
+        // 160.000 × 15 / 30 = 80.000 de interés + 2.000.000 de capital.
+        assertEquals(pesos("2080000"), prestamo.valorParaCancelar(VEINTICINCO_NOV));
+    }
+
+    @Test
+    void cancelarPagaTodoYCierraElPrestamo() {
+        Prestamo prestamo = prestamoCaso1(InteresCancelacion.POR_DIAS);
+
+        Pago pago = prestamo.cancelar(VEINTICINCO_NOV);
+
+        assertTrue(pago.isCancelacion());
+        assertEquals(pesos("2080000"), pago.getMonto());
+        assertEquals(pesos("80000"), pago.getAbonoACuotas());
+        assertEquals(pesos("2000000"), pago.getAbonoACapital());
+        assertTrue(prestamo.estaCerrado());
+        Cuota primera = prestamo.getCronograma().primero();
+        assertEquals(pesos("80000"), primera.getValor());
+        assertEquals(EstadoCuota.PAGADA, primera.estado(VEINTICINCO_NOV));
+    }
+
+    @Test
+    void porDiasElMismoDiaDelVencimientoSeCobraElPeriodoCompleto() {
+        Prestamo prestamo = prestamoCaso1(InteresCancelacion.POR_DIAS);
+
+        assertEquals(pesos("2160000"), prestamo.valorParaCancelar(LocalDate.of(2026, 12, 10)));
+    }
+
+    @Test
+    void cancelarIncluyeLasCuotasVencidas() {
+        Prestamo prestamo = prestamoCaso1(InteresCancelacion.POR_DIAS);
+
+        // 25 dic: cuota 1 vencida (160.000) + cuota 2 en curso, 15 de 31 días:
+        // 160.000 × 15 / 31 = 77.419,35 → 77.419. Más 2.000.000 de capital.
+        assertEquals(pesos("2237419"), prestamo.valorParaCancelar(LocalDate.of(2026, 12, 25)));
+    }
+
+    @Test
+    void porDiasNoSeDevuelveElInteresYaPagado() {
+        Prestamo prestamo = prestamoCaso1(InteresCancelacion.POR_DIAS);
+        prestamo.registrarPago(LocalDate.of(2026, 11, 20), pesos("100000"));
+
+        // Causado al 25 nov: 80.000, pero ya pagó 100.000 de esa cuota. Solo debe el capital.
+        assertEquals(pesos("2000000"), prestamo.valorParaCancelar(VEINTICINCO_NOV));
+        prestamo.cancelar(VEINTICINCO_NOV);
+        assertTrue(prestamo.estaCerrado());
+    }
+
+    @Test
+    void deshacerLaCancelacionReabreElPrestamoConLaCuotaCompleta() {
+        Prestamo prestamo = prestamoCaso1(InteresCancelacion.POR_DIAS);
+        prestamo.cancelar(VEINTICINCO_NOV);
+
+        prestamo.deshacerUltimoPago();
+
+        assertFalse(prestamo.estaCerrado());
+        assertEquals(pesos("160000"), prestamo.getCronograma().primero().getValor());
+        assertEquals(pesos("2000000"), prestamo.getCapitalPendiente());
+    }
+
+    @Test
+    void unPrestamoSeReconstruyeIgualAplicandoSusPagosEnOrdenInclusoLaCancelacion() {
+        // Así se reconstruirá desde la base de datos en el hito 4: contrato + pagos en orden.
+        Prestamo original = prestamoCaso1(InteresCancelacion.POR_DIAS);
+        original.registrarPago(LocalDate.of(2026, 11, 20), pesos("50000"));
+        original.cancelar(VEINTICINCO_NOV);
+
+        Prestamo reconstruido = new Prestamo("1009", original.getContrato());
+        ListaDoble<Pago> enOrden = new ListaDoble<>();
+        for (Pago pago : original.getPagos()) {
+            enOrden.agregarAlInicio(pago);
+        }
+        for (Pago pago : enOrden) {
+            if (pago.isCancelacion()) {
+                reconstruido.cancelar(pago.getFecha());
+            } else {
+                reconstruido.registrarPago(pago.getFecha(), pago.getMonto());
+            }
+        }
+
+        assertTrue(reconstruido.estaCerrado());
+        assertEquals(original.getPagos().verTope().getMonto(), reconstruido.getPagos().verTope().getMonto());
+        assertEquals(pesos("80000"), reconstruido.getCronograma().primero().getValor());
+    }
+
+    @Test
+    void unPrestamoCerradoNoSePuedeCancelarYSuValorParaCancelarEsCero() {
+        Prestamo prestamo = prestamoCaso1(InteresCancelacion.POR_DIAS);
+        prestamo.cancelar(VEINTICINCO_NOV);
+
+        assertEquals(BigDecimal.ZERO, prestamo.valorParaCancelar(LocalDate.of(2026, 11, 26)));
+        assertThrows(IllegalStateException.class, () -> prestamo.cancelar(LocalDate.of(2026, 11, 26)));
     }
 
     // Cierre

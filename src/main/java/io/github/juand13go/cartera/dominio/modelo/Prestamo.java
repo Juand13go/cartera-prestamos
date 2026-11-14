@@ -3,11 +3,13 @@ package io.github.juand13go.cartera.dominio.modelo;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 import io.github.juand13go.cartera.dominio.estructuras.ListaDoble;
 import io.github.juand13go.cartera.dominio.estructuras.Pila;
 import io.github.juand13go.cartera.dominio.estructuras.TablaHash;
 import io.github.juand13go.cartera.dominio.politicas.AlVencerPlazo;
+import io.github.juand13go.cartera.dominio.politicas.InteresCancelacion;
 import io.github.juand13go.cartera.dominio.politicas.OrdenImputacion;
 
 /**
@@ -183,8 +185,71 @@ public class Prestamo {
      * Lo que sobra después de multas y cuotas va a capital.
      */
     public Pago registrarPago(LocalDate fecha, BigDecimal monto) {
-        validarPago(fecha, monto);
+        validarFecha(fecha);
+        if (monto == null || monto.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("El pago debe ser mayor que cero");
+        }
         actualizarCronograma(fecha);
+        return aplicarPago(fecha, monto, false);
+    }
+
+    /**
+     * Cuánto tendría que pagar el cliente para cancelar todo a la fecha {@code hoy}:
+     * cuotas vencidas + multas + capital + interés del periodo en curso según el contrato.
+     * Nunca se cobran intereses de periodos futuros, porque esas cuotas todavía no existen.
+     */
+    public BigDecimal valorParaCancelar(LocalDate hoy) {
+        actualizarCronograma(hoy);
+        if (estaCerrado()) {
+            return BigDecimal.ZERO;
+        }
+        return saldoTotal(hoy).subtract(rebajaPorCancelar(hoy));
+    }
+
+    /**
+     * El cliente paga todo lo que debe a la fecha (ver {@link #valorParaCancelar}) y el préstamo se cierra.
+     * Si el contrato cobra el interés por días, primero se rebaja la cuota en curso y luego se paga como cualquier pago.
+     */
+    public Pago cancelar(LocalDate fecha) {
+        validarFecha(fecha);
+        actualizarCronograma(fecha);
+        BigDecimal rebaja = rebajaPorCancelar(fecha);
+        if (rebaja.compareTo(BigDecimal.ZERO) > 0) {
+            cronograma.ultimo().rebajarInteres(rebaja, fecha);
+        }
+        return aplicarPago(fecha, saldoTotal(fecha), true);
+    }
+
+    /**
+     * Con POR_DIAS y antes del vencimiento de la cuota en curso: cuánto interés de esa cuota no se cobra.
+     * En cualquier otro caso, 0 (se cobra el periodo completo).
+     */
+    private BigDecimal rebajaPorCancelar(LocalDate hoy) {
+        Cuota enCurso = cronograma.ultimo();
+        if (contrato.getInteresCancelacion() != InteresCancelacion.POR_DIAS
+                || !hoy.isBefore(enCurso.getFechaVencimiento())) {
+            return BigDecimal.ZERO;
+        }
+        return enCurso.rebajaDeInteres(interesCausado(enCurso, hoy));
+    }
+
+    /** Interés de la cuota × días corridos del periodo / días del periodo, redondeado al peso. */
+    private BigDecimal interesCausado(Cuota cuota, LocalDate hoy) {
+        LocalDate inicio;
+        if (cuota.getNumero() == 1) {
+            inicio = contrato.getFechaDesembolso();
+        } else {
+            inicio = contrato.fechaVencimiento(cuota.getNumero() - 1);
+        }
+        long diasDelPeriodo = ChronoUnit.DAYS.between(inicio, cuota.getFechaVencimiento());
+        long diasCorridos = ChronoUnit.DAYS.between(inicio, hoy);
+        return cuota.getInteres()
+                .multiply(BigDecimal.valueOf(diasCorridos))
+                .divide(BigDecimal.valueOf(diasDelPeriodo), 0, RoundingMode.HALF_UP);
+    }
+
+    /** Reparte un pago ya validado, con el cronograma ya actualizado a su fecha, y lo apila. */
+    private Pago aplicarPago(LocalDate fecha, BigDecimal monto, boolean esCancelacion) {
         BigDecimal deuda = saldoTotal(fecha);
         if (monto.compareTo(deuda) > 0) {
             throw new IllegalArgumentException("El pago supera todo lo que se debe: " + deuda);
@@ -206,7 +271,7 @@ public class Prestamo {
         }
         capitalPendiente = capitalPendiente.subtract(restante);
 
-        Pago pago = new Pago(fecha, monto, abonoAMultas, abonoACuotas, restante);
+        Pago pago = new Pago(fecha, monto, abonoAMultas, abonoACuotas, restante, esCancelacion);
         pagos.apilar(pago);
         return pago;
     }
@@ -280,16 +345,17 @@ public class Prestamo {
         }
         empezarDesdeElDesembolso();
         for (Pago pago : enOrden) {
-            registrarPago(pago.getFecha(), pago.getMonto());
+            if (pago.isCancelacion()) {
+                cancelar(pago.getFecha());
+            } else {
+                registrarPago(pago.getFecha(), pago.getMonto());
+            }
         }
     }
 
-    private void validarPago(LocalDate fecha, BigDecimal monto) {
+    private void validarFecha(LocalDate fecha) {
         if (estaCerrado()) {
             throw new IllegalStateException("El préstamo ya está cerrado");
-        }
-        if (monto == null || monto.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("El pago debe ser mayor que cero");
         }
         if (fecha == null || fecha.isBefore(contrato.getFechaDesembolso())) {
             throw new IllegalArgumentException("El pago no puede ser anterior al desembolso");

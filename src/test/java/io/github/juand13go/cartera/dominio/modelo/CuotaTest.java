@@ -201,4 +201,34 @@ class CuotaTest {
         ultima.cubrir(new BigDecimal("1060000"), LocalDate.of(2028, 11, 2));
         assertEquals(new BigDecimal("1000000"), ultima.capitalSinPagar());
     }
+
+    // Rebaja de interés al cancelar por días
+
+    @Test
+    void sinPagosSeRebajaTodoLoQueExcedeElInteresCausado() {
+        Cuota cuota = cuotaDeFebrero();
+
+        assertEquals(new BigDecimal("80000"), cuota.rebajaDeInteres(new BigDecimal("80000")));
+    }
+
+    @Test
+    void loYaPagadoDeInteresNoSeDevuelve() {
+        Cuota cuota = cuotaDeFebrero();
+        cuota.cubrir(new BigDecimal("100000"), LocalDate.of(2027, 1, 20));
+
+        // Causado 80.000 pero ya pagó 100.000: solo se rebajan los 60.000 que faltaban.
+        assertEquals(new BigDecimal("60000"), cuota.rebajaDeInteres(new BigDecimal("80000")));
+    }
+
+    @Test
+    void rebajarElInteresPuedeDejarLaCuotaCubierta() {
+        Cuota cuota = cuotaDeFebrero();
+        cuota.cubrir(new BigDecimal("100000"), LocalDate.of(2027, 1, 20));
+
+        cuota.rebajarInteres(new BigDecimal("60000"), LocalDate.of(2027, 1, 25));
+
+        assertEquals(new BigDecimal("100000"), cuota.getValor());
+        assertTrue(cuota.estaCubierta());
+        assertEquals(LocalDate.of(2027, 1, 25), cuota.getFechaCubierta());
+    }
 }

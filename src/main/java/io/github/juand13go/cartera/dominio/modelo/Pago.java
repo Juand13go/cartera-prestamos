@@ -13,14 +13,16 @@ public class Pago {
     private final BigDecimal abonoAMultas;
     private final BigDecimal abonoACuotas;
     private final BigDecimal abonoACapital;
+    private final boolean cancelacion;
 
     public Pago(LocalDate fecha, BigDecimal monto, BigDecimal abonoAMultas, BigDecimal abonoACuotas,
-                BigDecimal abonoACapital) {
+                BigDecimal abonoACapital, boolean cancelacion) {
         this.fecha = fecha;
         this.monto = monto;
         this.abonoAMultas = abonoAMultas;
         this.abonoACuotas = abonoACuotas;
         this.abonoACapital = abonoACapital;
+        this.cancelacion = cancelacion;
     }
 
     public LocalDate getFecha() {
@@ -44,5 +46,10 @@ public class Pago {
     /** Parte del pago que bajó el capital. */
     public BigDecimal getAbonoACapital() {
         return abonoACapital;
+    }
+
+    /** true si fue el pago con el que el cliente canceló todo el préstamo. */
+    public boolean isCancelacion() {
+        return cancelacion;
     }
 }

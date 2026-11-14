@@ -11,7 +11,7 @@ import java.time.temporal.ChronoUnit;
 public class Cuota {
     private final int numero;
     private final LocalDate fechaVencimiento;
-    private final BigDecimal valor;
+    private BigDecimal valor;
     private final BigDecimal capitalIncluido;
     private BigDecimal valorCubierto;
     private LocalDate fechaCubierta;
@@ -117,6 +117,27 @@ public class Cuota {
             return multaCalculada.min(multaCondonadaEn);
         }
         return multaCalculada;
+    }
+
+    /**
+     * Cuánto se le puede rebajar al interés de esta cuota si solo se cobra {@code interesCausado}
+     * (cancelación anticipada por días). Lo que ya se pagó de interés no se devuelve.
+     */
+    public BigDecimal rebajaDeInteres(BigDecimal interesCausado) {
+        BigDecimal interesPagado = valorCubierto.min(getInteres());
+        BigDecimal interesACobrar = interesCausado.max(interesPagado);
+        return getInteres().subtract(interesACobrar).max(BigDecimal.ZERO);
+    }
+
+    /**
+     * Rebaja el interés de esta cuota (solo al cancelar todo antes del vencimiento).
+     * Si con la rebaja lo ya pagado alcanza, la cuota queda cubierta en {@code fecha}.
+     */
+    public void rebajarInteres(BigDecimal rebaja, LocalDate fecha) {
+        valor = valor.subtract(rebaja);
+        if (estaCubierta() && fechaCubierta == null) {
+            fechaCubierta = fecha;
+        }
     }
 
     /** Lo que falta por pagar de esta cuota. */
