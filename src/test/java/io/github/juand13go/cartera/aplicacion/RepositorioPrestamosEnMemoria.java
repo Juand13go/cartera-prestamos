@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import io.github.juand13go.cartera.aplicacion.puertos.RegistroDePago;
 import io.github.juand13go.cartera.aplicacion.puertos.RepositorioPrestamos;
 import io.github.juand13go.cartera.dominio.estructuras.ListaDoble;
 import io.github.juand13go.cartera.dominio.estructuras.TablaHash;
@@ -23,6 +24,7 @@ class RepositorioPrestamosEnMemoria implements RepositorioPrestamos {
         final String cedula;
         final Contrato contrato;
         final ListaDoble<Pago> pagos = new ListaDoble<>();
+        final ListaDoble<RegistroDePago> registros = new ListaDoble<>();
         final ListaDoble<Integer> cuotasCondonadas = new ListaDoble<>();
         final ListaDoble<BigDecimal> valoresCondonados = new ListaDoble<>();
 
@@ -36,6 +38,7 @@ class RepositorioPrestamosEnMemoria implements RepositorioPrestamos {
     private final TablaHash<Long, Registro> registros = new TablaHash<>();
     private final ListaDoble<Long> ids = new ListaDoble<>();
     private long siguienteId = 1;
+    private long siguienteIdPago = 100;
     int pagosGuardados = 0;
     LocalDateTime ultimoRegistradoEn;
 
@@ -76,14 +79,23 @@ class RepositorioPrestamosEnMemoria implements RepositorioPrestamos {
 
     @Override
     public void guardarPago(long prestamoId, Pago pago, LocalDateTime registradoEn) {
-        registros.buscar(prestamoId).pagos.agregarAlFinal(pago);
+        Registro registro = registros.buscar(prestamoId);
+        registro.pagos.agregarAlFinal(pago);
+        registro.registros.agregarAlFinal(new RegistroDePago(siguienteIdPago++, registradoEn));
         pagosGuardados++;
         ultimoRegistradoEn = registradoEn;
     }
 
     @Override
     public void borrarUltimoPago(long prestamoId) {
-        registros.buscar(prestamoId).pagos.eliminarUltimo();
+        Registro registro = registros.buscar(prestamoId);
+        registro.pagos.eliminarUltimo();
+        registro.registros.eliminarUltimo();
+    }
+
+    @Override
+    public ListaDoble<RegistroDePago> registrosDePago(long prestamoId) {
+        return registros.buscar(prestamoId).registros;
     }
 
     @Override

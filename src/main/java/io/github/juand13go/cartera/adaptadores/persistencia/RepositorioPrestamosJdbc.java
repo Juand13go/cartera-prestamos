@@ -13,6 +13,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
+import io.github.juand13go.cartera.aplicacion.puertos.RegistroDePago;
 import io.github.juand13go.cartera.aplicacion.puertos.RepositorioPrestamos;
 import io.github.juand13go.cartera.dominio.estructuras.ListaDoble;
 import io.github.juand13go.cartera.dominio.modelo.BaseInteres;
@@ -95,6 +96,17 @@ public class RepositorioPrestamosJdbc implements RepositorioPrestamos {
     @Override
     public void borrarUltimoPago(long prestamoId) {
         jdbc.update("DELETE FROM pago WHERE id = (SELECT MAX(id) FROM pago WHERE prestamo_id = ?)", prestamoId);
+    }
+
+    @Override
+    public ListaDoble<RegistroDePago> registrosDePago(long prestamoId) {
+        ListaDoble<RegistroDePago> registros = new ListaDoble<>();
+        jdbc.query("SELECT id, registrado_en FROM pago WHERE prestamo_id = ? ORDER BY id",
+                fila -> {
+                    registros.agregarAlFinal(new RegistroDePago(fila.getLong("id"),
+                            fila.getTimestamp("registrado_en").toLocalDateTime()));
+                }, prestamoId);
+        return registros;
     }
 
     @Override

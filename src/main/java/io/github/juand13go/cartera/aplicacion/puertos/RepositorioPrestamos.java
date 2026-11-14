@@ -33,6 +33,9 @@ public interface RepositorioPrestamos {
     /** Borra el pago más reciente del préstamo (deshacer). */
     void borrarUltimoPago(long prestamoId);
 
+    /** Id y fecha-hora de registro de cada pago del préstamo, en el mismo orden en que ocurrieron. */
+    ListaDoble<RegistroDePago> registrosDePago(long prestamoId);
+
     /** Anota que la multa de una cuota quedó condonada en ese valor. */
     void guardarCondonacion(long prestamoId, int numeroCuota, BigDecimal fijadaEn);
 }

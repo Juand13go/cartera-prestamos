@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import io.github.juand13go.cartera.aplicacion.puertos.RegistroDePago;
 import io.github.juand13go.cartera.aplicacion.puertos.RepositorioClientes;
 import io.github.juand13go.cartera.aplicacion.puertos.RepositorioPrestamos;
 import io.github.juand13go.cartera.dominio.modelo.BaseInteres;
@@ -187,6 +188,24 @@ class RepositorioPrestamosJdbcTest {
         Prestamo leido = repositorio.buscarPorId(prestamo.getId());
         assertEquals(1, leido.getPagos().tamano());
         assertTrue(iguales(pesos("2000000"), leido.getCapitalPendiente()));
+    }
+
+    @Test
+    void losRegistrosDePagoVienenEnOrdenConSuIdYFechaHora() {
+        Contrato contrato = Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO).firmar();
+        Prestamo prestamo = new Prestamo(repositorio.crear(CEDULA, contrato), CEDULA, contrato);
+        repositorio.guardarPago(prestamo.getId(), prestamo.registrarPago(LocalDate.of(2026, 12, 10), pesos("160000")),
+                LocalDateTime.of(2026, 12, 10, 9, 15));
+        repositorio.guardarPago(prestamo.getId(), prestamo.registrarPago(LocalDate.of(2027, 1, 10), pesos("660000")),
+                LocalDateTime.of(2027, 1, 10, 16, 40));
+
+        RegistroDePago primero = repositorio.registrosDePago(prestamo.getId()).primero();
+        RegistroDePago segundo = repositorio.registrosDePago(prestamo.getId()).ultimo();
+
+        assertEquals(2, repositorio.registrosDePago(prestamo.getId()).tamano());
+        assertTrue(segundo.id() > primero.id());
+        assertEquals(LocalDateTime.of(2026, 12, 10, 9, 15), primero.registradoEn());
+        assertEquals(LocalDateTime.of(2027, 1, 10, 16, 40), segundo.registradoEn());
     }
 
     // Listados

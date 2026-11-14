@@ -15,6 +15,7 @@ import io.github.juand13go.cartera.aplicacion.CrearCliente;
 import io.github.juand13go.cartera.aplicacion.CrearPrestamo;
 import io.github.juand13go.cartera.aplicacion.DeshacerUltimoPago;
 import io.github.juand13go.cartera.aplicacion.DirectorioClientes;
+import io.github.juand13go.cartera.aplicacion.GenerarRecibo;
 import io.github.juand13go.cartera.aplicacion.RegistrarPago;
 import io.github.juand13go.cartera.aplicacion.puertos.CifradorPin;
 import io.github.juand13go.cartera.aplicacion.puertos.RepositorioClientes;
@@ -73,5 +74,10 @@ public class ConfiguracionCasosDeUso {
     @Bean
     public ArmarPanel armarPanel(ConsultarPrestamos consultar, DirectorioClientes directorio) {
         return new ArmarPanel(consultar, directorio);
+    }
+
+    @Bean
+    public GenerarRecibo generarRecibo(RepositorioPrestamos repositorio, DirectorioClientes directorio) {
+        return new GenerarRecibo(repositorio, directorio);
     }
 }
