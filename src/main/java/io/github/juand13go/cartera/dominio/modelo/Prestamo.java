@@ -131,6 +131,41 @@ public class Prestamo {
         return total;
     }
 
+    /**
+     * Lo que el cliente tiene que pagar hoy para quedar al día: las cuotas que vencen hasta hoy
+     * (incluida la de hoy) sin pagar, más todas las multas pendientes. No incluye cuotas futuras ni capital.
+     */
+    public BigDecimal valorParaEstarAlDia(LocalDate hoy) {
+        actualizarCronograma(hoy);
+        BigDecimal total = BigDecimal.ZERO;
+        for (Cuota cuota : cronograma) {
+            total = total.add(saldoMulta(cuota, hoy));
+            if (!cuota.estaCubierta() && !cuota.getFechaVencimiento().isAfter(hoy)) {
+                total = total.add(cuota.saldoPendiente());
+            }
+        }
+        return total;
+    }
+
+    /** La primera cuota que no está cubierta (la próxima que hay que pagar), o null si no hay ninguna. */
+    public Cuota proximaCuotaPendiente() {
+        for (Cuota cuota : cronograma) {
+            if (!cuota.estaCubierta()) {
+                return cuota;
+            }
+        }
+        return null;
+    }
+
+    /** Qué porcentaje del capital prestado ya se devolvió (0 a 100, sin decimales). Cerrado = 100. */
+    public int porcentajeDeCapitalPagado() {
+        if (estaCerrado()) {
+            return 100;
+        }
+        BigDecimal pagado = contrato.getCapital().subtract(capitalAdeudado());
+        return pagado.multiply(CIEN).divide(contrato.getCapital(), 0, RoundingMode.DOWN).intValue();
+    }
+
     /** Lo que falta pagar de la multa de una cuota a la fecha {@code hoy}. */
     public BigDecimal saldoMulta(Cuota cuota, LocalDate hoy) {
         BigDecimal multa = cuota.multaACobrar(contrato.multa(cuota, hoy));
@@ -435,7 +470,7 @@ public class Prestamo {
     private void agregarSiguienteCuota() {
         int numero = cronograma.tamano() + 1;
         LocalDate vence = contrato.fechaVencimiento(numero);
-        BigDecimal interes = interesDelPeriodo();
+        BigDecimal interes = interesProximaCuota();
         Cuota cuota;
         if (numero == cuotasDelPlazo()) {
             cuota = new Cuota(numero, vence, interes, capitalPendiente);
@@ -450,8 +485,11 @@ public class Prestamo {
         cronograma.agregarAlFinal(cuota);
     }
 
-    /** Base del interés × tasa / 100, redondeado al peso. */
-    private BigDecimal interesDelPeriodo() {
+    /**
+     * Interés que tendrá la próxima cuota que nazca, con el capital de este momento:
+     * base del interés × tasa / 100, redondeado al peso. Con capital vigente, baja si se abona a capital.
+     */
+    public BigDecimal interesProximaCuota() {
         BigDecimal base;
         if (contrato.getBaseInteres() == BaseInteres.CAPITAL_INICIAL) {
             base = contrato.getCapital();

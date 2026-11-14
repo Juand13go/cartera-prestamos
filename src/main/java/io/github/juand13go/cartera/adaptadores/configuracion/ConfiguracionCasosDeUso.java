@@ -18,6 +18,7 @@ import io.github.juand13go.cartera.aplicacion.DirectorioClientes;
 import io.github.juand13go.cartera.aplicacion.GenerarRecibo;
 import io.github.juand13go.cartera.aplicacion.IniciarSesion;
 import io.github.juand13go.cartera.aplicacion.RegistrarPago;
+import io.github.juand13go.cartera.aplicacion.SimularAbono;
 import io.github.juand13go.cartera.aplicacion.puertos.CifradorPin;
 import io.github.juand13go.cartera.aplicacion.puertos.RepositorioClientes;
 import io.github.juand13go.cartera.aplicacion.puertos.RepositorioPrestamos;
@@ -87,5 +88,10 @@ public class ConfiguracionCasosDeUso {
                                        @Value("${app.prestamista.usuario}") String usuario,
                                        @Value("${app.prestamista.clave-cifrada}") String claveCifrada) {
         return new IniciarSesion(directorio, cifrador, usuario, claveCifrada);
+    }
+
+    @Bean
+    public SimularAbono simularAbono(RepositorioPrestamos repositorio, Clock reloj) {
+        return new SimularAbono(repositorio, reloj);
     }
 }

@@ -781,6 +781,57 @@ class PrestamoTest {
         assertEquals(pesos("1500000"), ultimo.getSaldoDespues());
     }
 
+    // Consultas para el portal del cliente
+
+    @Test
+    void paraEstarAlDiaElMismoDiaDelVencimientoHayQuePagarEsaCuota() {
+        Prestamo prestamo = prestamoCaso1(BaseInteres.CAPITAL_INICIAL);
+
+        assertEquals(pesos("0"), prestamo.valorParaEstarAlDia(LocalDate.of(2026, 12, 9)));
+        assertEquals(pesos("160000"), prestamo.valorParaEstarAlDia(LocalDate.of(2026, 12, 10)));
+    }
+
+    @Test
+    void paraEstarAlDiaSeSumanLasMultasPeroNoLasCuotasFuturas() {
+        Prestamo prestamo = prestamoConMulta(OrdenImputacion.MULTAS_PRIMERO);
+
+        // 15 dic: cuota 1 (160.000) + su multa (6.000). La cuota 2 vence el 10 ene: no cuenta.
+        assertEquals(pesos("166000"), prestamo.valorParaEstarAlDia(LocalDate.of(2026, 12, 15)));
+    }
+
+    @Test
+    void unPrestamoCerradoYaEstaAlDia() {
+        Prestamo prestamo = prestamoCaso1(BaseInteres.CAPITAL_INICIAL);
+        prestamo.registrarPago(LocalDate.of(2026, 12, 10), pesos("2160000"));
+
+        assertEquals(0, prestamo.valorParaEstarAlDia(LocalDate.of(2027, 1, 20)).compareTo(BigDecimal.ZERO));
+        assertEquals(100, prestamo.porcentajeDeCapitalPagado());
+        assertEquals(null, prestamo.proximaCuotaPendiente());
+    }
+
+    @Test
+    void laProximaCuotaPendienteEsLaPrimeraSinCubrir() {
+        Prestamo prestamo = prestamoCaso2(BaseInteres.CAPITAL_INICIAL);
+        prestamo.actualizarCronograma(LocalDate.of(2027, 2, 11));
+
+        assertEquals(3, prestamo.proximaCuotaPendiente().getNumero());
+    }
+
+    @Test
+    void elPorcentajeDeCapitalPagadoSubeConLosAbonos() {
+        Prestamo prestamo = prestamoCaso2(BaseInteres.CAPITAL_INICIAL);
+
+        // Abonó 500.000 de 2.000.000.
+        assertEquals(25, prestamo.porcentajeDeCapitalPagado());
+        assertEquals(0, prestamoCaso1(BaseInteres.CAPITAL_INICIAL).porcentajeDeCapitalPagado());
+    }
+
+    @Test
+    void elInteresDeLaProximaCuotaBajaSoloConCapitalVigente() {
+        assertEquals(pesos("120000"), prestamoCaso2(BaseInteres.CAPITAL_VIGENTE).interesProximaCuota());
+        assertEquals(pesos("160000"), prestamoCaso2(BaseInteres.CAPITAL_INICIAL).interesProximaCuota());
+    }
+
     // Cierre
 
     @Test
