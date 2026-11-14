@@ -68,13 +68,14 @@
                     <th class="numero">Falta</th><th>Estado</th><th class="numero">Multa pendiente</th><th></th></tr>
                 </thead>
                 <tbody>
-                <tr th:each="cuota : ${prestamo.cronograma}" th:with="multa=${prestamo.saldoMulta(cuota, hoy)}, estado=${cuota.estado(hoy)}">
+                <tr th:each="cuota : ${prestamo.cronograma}" th:with="multa=${prestamo.saldoMulta(cuota, hoy)}, estado=${cuota.estado(hoy)}"
+                    th:classappend="${estado.name() == 'MORA'} ? 'en-mora'">
                     <td th:text="${cuota.numero}">1</td>
                     <td th:text="${#temporals.format(cuota.fechaVencimiento, 'dd/MM/yyyy')}">10/12/2026</td>
                     <td class="numero" th:text="${@textos.pesos(cuota.valor)}">$160.000</td>
                     <td class="numero" th:text="${@textos.pesos(cuota.valorCubierto)}">$0</td>
                     <td class="numero" th:text="${@textos.pesos(cuota.saldoPendiente())}">$160.000</td>
-                    <td><span class="etiqueta" th:classappend="${estado.name() == 'MORA'} ? 'mora' : (${cuota.estaCubierta()} ? 'activo')"
+                    <td><span class="etiqueta" th:classappend="'estado-' + ${estado.name()}"
                               th:text="${@textos.estado(estado)}">Con tiempo</span></td>
                     <td class="numero">
                         <span th:text="${@textos.pesos(multa)}">$0</span>

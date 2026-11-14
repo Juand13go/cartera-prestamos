@@ -55,6 +55,8 @@
     --letra-texto: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
+
+/* ---------- Base ---------- */
 * { box-sizing: border-box; }
 
 body {
@@ -68,30 +70,27 @@ body {
 
 a { color: var(--tinta); }
 
+main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+
 h1, h2 { font-family: var(--letra-titulos); font-weight: 600; color: var(--texto); }
+h2 { margin: 20px 0 8px; font-size: 20px; }
+
+/* h1 con un subrayado fino, como el renglón de un cuaderno. */
+h1 {
+    margin: 8px 0 20px;
+    padding-bottom: 6px;
+    font-size: 28px;
+    line-height: 1.25;
+    border-bottom: 1px solid var(--borde);
+}
 
 /* Montos: cifras del mismo ancho y alineadas a la derecha, para que las columnas cuadren. */
 .numero { text-align: right; font-variant-numeric: tabular-nums; }
 
-/* Menú superior */
-.menu {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px 24px;
-    padding: 12px 16px;
-    background: var(--tinta);
-    color: #fff;
-}
-.menu a { color: #fff; text-decoration: none; }
-.menu .marca { font-family: var(--letra-titulos); font-weight: 600; font-size: 20px; }
-.menu nav { display: flex; gap: 16px; }
-.menu .hoy { margin-left: auto; font-size: 14px; }
+.nota { color: var(--suave); font-size: 14px; margin: 0 0 12px; }
+.vacio { color: var(--suave); font-style: italic; }
 
-main { max-width: 1100px; margin: 0 auto; padding: 16px; }
-
-h1 { margin: 8px 0 16px; }
-h2 { margin: 24px 0 4px; font-size: 20px; }
+/* Cada bloque de la página es una hoja blanca sobre el papel: borde fino, sin sombras. */
 section {
     background: var(--superficie);
     border: 1px solid var(--borde);
@@ -100,52 +99,109 @@ section {
     margin-bottom: 16px;
 }
 
-.nota { color: var(--suave); font-size: 14px; margin: 0 0 12px; }
-.vacio { color: var(--suave); font-style: italic; }
+/* ---------- Barra superior ---------- */
+.menu {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 24px;
+    padding: 12px 16px;
+    background: var(--tinta);
+    color: #fff;
+}
+.menu a { color: #fff; text-decoration: none; }
+.menu a:hover { text-decoration: underline; }
+.menu .marca { font-family: var(--letra-titulos); font-weight: 600; font-size: 22px; }
+.menu nav { display: flex; gap: 16px; }
+.menu .hoy { margin-left: auto; font-size: 14px; }
+.menu .salir { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; }
+.menu .salir button { color: #fff; border-color: #fff; padding: 4px 10px; }
 
-/* Tablas: en pantallas pequeñas se desplazan dentro de su caja, no toda la página. */
-.tabla { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; }
-th, td { padding: 8px; border-bottom: 1px solid var(--borde); text-align: left; white-space: nowrap; }
-th { font-size: 13px; color: var(--suave); text-transform: uppercase; letter-spacing: .03em; }
-tr.resaltada { background: var(--retraso-fondo); }
+/* ---------- Tarjetas de resumen: la plata, lo primero que se ve ---------- */
+.resumen {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.tarjeta-resumen {
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    padding: 14px 16px;
+}
+.tarjeta-resumen .rotulo { margin: 0; font-size: 13px; font-weight: 500; color: var(--suave); }
+.tarjeta-resumen .cifra {
+    margin: 2px 0 0;
+    font-family: var(--letra-titulos);
+    font-weight: 600;
+    font-size: 30px;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+    color: var(--texto);
+}
+.tarjeta-resumen .detalle { margin: 4px 0 0; font-size: 14px; color: var(--suave); }
+.tarjeta-resumen.alerta { border-color: var(--mora-texto); }
+.tarjeta-resumen.alerta .cifra { color: var(--mora-texto); }
 
+/* ---------- Etiquetas: siempre llevan texto, el color solo acompaña ---------- */
 .etiqueta {
     display: inline-block;
-    padding: 0 8px;
-    border-radius: 10px;
-    background: var(--borde);
+    padding: 1px 10px;
+    border-radius: 999px;
+    background: var(--fondo);
+    color: var(--suave);
+    border: 1px solid var(--borde);
     font-size: 12px;
     font-weight: 600;
+    line-height: 1.6;
+    white-space: nowrap;
 }
-.etiqueta.mora { background: var(--mora-fondo); color: var(--mora-texto); }
-
-/* Mensajes después de una acción */
-.aviso { padding: 10px 14px; border-radius: 6px; margin: 0 0 16px; }
-.aviso.exito { background: var(--pagada-fondo); color: var(--pagada-texto); }
-.aviso.error { background: var(--mora-fondo); color: var(--mora-texto); }
-
-/* Al imprimir (recibos) no se muestra el menú ni los botones. */
-@media print {
-    .menu, .no-imprimir, form { display: none !important; }
-    body { background: #fff; }
-    section { border: none; }
+.etiqueta.estado-PAGADA, .etiqueta.activo {
+    background: var(--pagada-fondo); color: var(--pagada-texto); border-color: transparent;
+}
+.etiqueta.estado-CON_TIEMPO {
+    background: var(--con-tiempo-fondo); color: var(--con-tiempo-texto); border-color: transparent;
+}
+.etiqueta.estado-PAGADA_CON_RETRASO {
+    background: var(--retraso-fondo); color: var(--retraso-texto); border-color: transparent;
+}
+.etiqueta.estado-MORA, .etiqueta.mora {
+    background: var(--mora-fondo); color: var(--mora-texto); border-color: transparent;
 }
 
-/* Formularios y botones */
+/* ---------- Tablas ---------- */
+/* En pantallas pequeñas la tabla se desplaza dentro de su caja, no toda la página. */
+.tabla { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 9px 10px; border-bottom: 1px solid var(--borde); text-align: left; white-space: nowrap; }
+th {
+    background: var(--fondo);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--suave);
+}
+tbody tr:last-child td { border-bottom: none; }
+tr.resaltada { background: var(--con-tiempo-fondo); }
+tr.en-mora { background: #FEF7F6; }   /* rojo muy tenue: la etiqueta dice "En mora" */
+
+/* ---------- Formularios y botones ---------- */
 .formulario {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 12px 16px;
     margin-top: 12px;
 }
-.formulario label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--suave); }
+.formulario label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; font-weight: 500; color: var(--suave); }
 .formulario .ancho { grid-column: 1 / -1; }
-.formulario fieldset { grid-column: 1 / -1; border: 1px solid var(--borde); border-radius: 6px; padding: 8px 12px 12px; }
-.formulario legend { font-weight: 600; color: var(--texto); }
+.formulario fieldset { grid-column: 1 / -1; border: 1px solid var(--borde); border-radius: 8px; padding: 8px 12px 12px; }
+.formulario legend { font-weight: 600; color: var(--texto); padding: 0 4px; }
+.formulario label.casilla { flex-direction: row; align-items: center; gap: 8px; color: var(--texto); }
 .en-linea { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
 input, select, textarea {
     font: inherit;
+    font-weight: 400;
     color: var(--texto);
     padding: 8px 10px;
     border: 1px solid var(--borde);
@@ -153,10 +209,16 @@ input, select, textarea {
     background: var(--superficie);
     max-width: 100%;
 }
+input:focus, select:focus, textarea:focus, button:focus-visible, .boton:focus-visible, a:focus-visible {
+    outline: 2px solid var(--tinta);
+    outline-offset: 1px;
+}
+
 button, .boton {
     display: inline-block;
     font: inherit;
-    padding: 8px 14px;
+    font-weight: 500;
+    padding: 8px 16px;
     border: 1px solid var(--tinta);
     border-radius: 6px;
     background: var(--tinta);
@@ -164,30 +226,53 @@ button, .boton {
     text-decoration: none;
     cursor: pointer;
 }
-.boton.secundario, button.secundario { background: transparent; color: var(--tinta); }
-button.peligro { background: var(--mora-texto); border-color: var(--mora-texto); }
+button:hover, .boton:hover { background: #0B3B35; border-color: #0B3B35; }
+.boton.secundario, button.secundario { background: var(--superficie); color: var(--tinta); }
+.boton.secundario:hover, button.secundario:hover { background: var(--fondo); }
+/* Acciones que no se pueden repetir sin pensar (deshacer un pago, cancelar el préstamo). */
+button.peligro { background: var(--superficie); color: var(--mora-texto); border-color: var(--mora-texto); }
+button.peligro:hover { background: var(--mora-fondo); }
 .acciones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-
-/* Listas de datos (ficha del cliente, resumen del préstamo) */
-.datos { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 12px 0 0; }
-.datos dt { color: var(--suave); }
-.datos dd { margin: 0; }
-.etiqueta.activo { background: var(--pagada-fondo); color: var(--pagada-texto); }
-.formulario label.casilla { flex-direction: row; align-items: center; gap: 8px; color: var(--texto); }
 section form + form { margin-top: 0; }
 section > form.no-imprimir { margin-top: 12px; }
 
-/* Recibo */
+/* ---------- Listas de datos (ficha del cliente, contrato) ---------- */
+.datos { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 12px 0 0; }
+.datos dt { color: var(--suave); }
+.datos dd { margin: 0; }
+
+/* ---------- Mensajes después de una acción ---------- */
+.aviso { padding: 10px 14px; border-radius: 6px; margin: 0 0 16px; }
+.aviso.exito { background: var(--pagada-fondo); color: var(--pagada-texto); }
+.aviso.error { background: var(--mora-fondo); color: var(--mora-texto); }
+
+/* ---------- Login ---------- */
+.entrar { max-width: 420px; margin: 0 auto; }
+
+/* ---------- Barra de progreso del portal del cliente ---------- */
+.progreso { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
+.progreso progress { flex: 1; max-width: 360px; height: 14px; accent-color: var(--tinta); }
+
+/* ---------- Recibo ---------- */
 .recibo { max-width: 520px; margin: 0 auto 16px; padding-top: 12px; }
 .recibo h1 { font-size: 22px; }
 .valor-recibo { font-size: 20px; margin: 16px 0 8px; }
 main > .acciones { justify-content: center; }
 
-/* Login y menú con sesión */
-.entrar { max-width: 420px; margin: 0 auto; }
-.menu .salir { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; }
-.menu .salir button { color: #fff; border-color: #fff; padding: 4px 10px; }
+/* ---------- Celular (desde 360 px) ---------- */
+@media (max-width: 600px) {
+    main { padding: 12px 12px 24px; }
+    h1 { font-size: 24px; }
+    section { padding: 4px 12px 12px; }
+    .menu .hoy { margin-left: 0; }
+    .datos { grid-template-columns: 1fr; gap: 0; }
+    .datos dd { margin-bottom: 8px; }
+    .tarjeta-resumen .cifra { font-size: 26px; }
+}
 
-/* Barra de progreso del portal del cliente */
-.progreso { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
-.progreso progress { flex: 1; max-width: 360px; height: 14px; accent-color: var(--tinta); }
+/* ---------- Impresión (recibos): sin barra ni botones ---------- */
+@media print {
+    .menu, .no-imprimir, form { display: none !important; }
+    body { background: #fff; }
+    section { border: none; }
+}
