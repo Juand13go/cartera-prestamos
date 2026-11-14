@@ -19,14 +19,18 @@ import io.github.juand13go.cartera.dominio.politicas.OrdenImputacion;
  * Los pagos son al préstamo, no a una cuota: el préstamo los reparte entre multas,
  * cuotas y capital, en el orden que diga el contrato. El capital siempre va de último,
  * así que cuando llega a 0 ya no se debe nada y el préstamo queda cerrado.
+ *
+ * Un préstamo es su contrato más sus pagos en orden: aplicar los mismos pagos en el mismo
+ * orden siempre produce el mismo estado. Por eso deshacer es sacar el último pago de la pila
+ * y volver a aplicar los demás desde cero.
  */
 public class Prestamo {
     private static final BigDecimal CIEN = new BigDecimal("100");
 
     private final String cedulaCliente;
     private final Contrato contrato;
-    private final ListaDoble<Cuota> cronograma;
-    private final Pila<Pago> pagos;
+    private ListaDoble<Cuota> cronograma;
+    private Pila<Pago> pagos;
     private BigDecimal capitalPendiente;
 
     /** Crea el préstamo el día del desembolso, con su primera cuota ya generada. */
@@ -39,6 +43,11 @@ public class Prestamo {
         }
         this.cedulaCliente = cedulaCliente;
         this.contrato = contrato;
+        empezarDesdeElDesembolso();
+    }
+
+    /** Deja el préstamo como el día del desembolso: sin pagos, todo el capital y solo la primera cuota. */
+    private void empezarDesdeElDesembolso() {
         this.cronograma = new ListaDoble<>();
         this.pagos = new Pila<>();
         this.capitalPendiente = contrato.getCapital();
@@ -172,6 +181,38 @@ public class Prestamo {
             usado = usado.add(abono);
         }
         return usado;
+    }
+
+    /**
+     * Anula el último pago registrado y lo devuelve.
+     * Saca el pago de la pila (O(1)) y recalcula todo con los pagos que quedan.
+     * El cronograma queda generado hasta la fecha del último pago que queda;
+     * para verlo a otra fecha, llamar a {@link #actualizarCronograma(LocalDate)}.
+     */
+    public Pago deshacerUltimoPago() {
+        if (pagos.estaVacia()) {
+            throw new IllegalStateException("No hay pagos para deshacer");
+        }
+        Pago deshecho = pagos.desapilar();
+        recalcular();
+        return deshecho;
+    }
+
+    /**
+     * Vuelve a construir el estado desde el contrato aplicando los pagos de la pila, del más viejo al más nuevo.
+     * La pila los entrega del más nuevo al más viejo, así que primero se pasan a una lista
+     * con agregarAlInicio, que invierte el orden.
+     * O(p × n): por cada uno de los p pagos se recorre el cronograma de n cuotas.
+     */
+    private void recalcular() {
+        ListaDoble<Pago> enOrden = new ListaDoble<>();
+        for (Pago pago : pagos) {
+            enOrden.agregarAlInicio(pago);
+        }
+        empezarDesdeElDesembolso();
+        for (Pago pago : enOrden) {
+            registrarPago(pago.getFecha(), pago.getMonto());
+        }
     }
 
     private void validarPago(LocalDate fecha, BigDecimal monto) {

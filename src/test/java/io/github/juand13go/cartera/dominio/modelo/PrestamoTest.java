@@ -1,6 +1,7 @@
 package io.github.juand13go.cartera.dominio.modelo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -294,6 +295,80 @@ class PrestamoTest {
         assertEquals(pesos("70000"), pago.getAbonoAMultas());
         assertEquals(pesos("68000"), prestamo.getCronograma().obtener(0).getMultaPagada());
         assertEquals(pesos("2000"), prestamo.getCronograma().obtener(1).getMultaPagada());
+    }
+
+    // Deshacer
+
+    @Test
+    void deshacerElPagoDe660000DevuelveElCapitalYDejaLaCuotaPendiente() {
+        Prestamo prestamo = prestamoCaso2(BaseInteres.CAPITAL_INICIAL);
+
+        Pago deshecho = prestamo.deshacerUltimoPago();
+
+        assertEquals(pesos("660000"), deshecho.getMonto());
+        assertEquals(pesos("2000000"), prestamo.getCapitalPendiente());
+        assertEquals(1, prestamo.getPagos().tamano());
+        prestamo.actualizarCronograma(LocalDate.of(2027, 1, 10));
+        assertTrue(prestamo.getCronograma().obtener(0).estaCubierta());
+        assertEquals(pesos("160000"), prestamo.getCronograma().obtener(1).saldoPendiente());
+    }
+
+    @Test
+    void conCapitalVigenteDeshacerHaceQueLasCuotasVuelvanA160000() {
+        Prestamo prestamo = prestamoCaso2(BaseInteres.CAPITAL_VIGENTE);
+        prestamo.actualizarCronograma(LocalDate.of(2027, 2, 11));
+        assertEquals(pesos("120000"), prestamo.getCronograma().obtener(2).getValor());
+
+        prestamo.deshacerUltimoPago();
+        prestamo.actualizarCronograma(LocalDate.of(2027, 2, 11));
+
+        assertEquals(pesos("160000"), prestamo.getCronograma().obtener(2).getValor());
+        assertEquals(pesos("160000"), prestamo.getCronograma().obtener(3).getValor());
+    }
+
+    @Test
+    void deshacerTodosLosPagosDejaElPrestamoComoAlDesembolsar() {
+        Prestamo prestamo = prestamoCaso2(BaseInteres.CAPITAL_INICIAL);
+
+        prestamo.deshacerUltimoPago();
+        prestamo.deshacerUltimoPago();
+
+        assertTrue(prestamo.getPagos().estaVacia());
+        assertEquals(pesos("2000000"), prestamo.getCapitalPendiente());
+        assertEquals(1, prestamo.getCronograma().tamano());
+        assertEquals(pesos("0"), prestamo.getCronograma().primero().getValorCubierto());
+    }
+
+    @Test
+    void deshacerElPagoQueCerroElPrestamoLoReabre() {
+        Prestamo prestamo = prestamoCaso1(BaseInteres.CAPITAL_INICIAL);
+        prestamo.registrarPago(LocalDate.of(2026, 12, 10), pesos("2160000"));
+
+        prestamo.deshacerUltimoPago();
+
+        assertFalse(prestamo.estaCerrado());
+        prestamo.registrarPago(LocalDate.of(2026, 12, 10), pesos("160000"));
+        assertEquals(pesos("2000000"), prestamo.getCapitalPendiente());
+    }
+
+    @Test
+    void deshacerRespetaLasMultasPagadasPorLosPagosQueQuedan() {
+        Prestamo prestamo = prestamoConMulta(OrdenImputacion.MULTAS_PRIMERO);
+        prestamo.registrarPago(LocalDate.of(2026, 12, 15), pesos("4000"));
+        prestamo.registrarPago(LocalDate.of(2026, 12, 20), pesos("170000"));
+
+        prestamo.deshacerUltimoPago();
+
+        Cuota primera = prestamo.getCronograma().primero();
+        assertEquals(pesos("4000"), primera.getMultaPagada());
+        assertEquals(pesos("0"), primera.getValorCubierto());
+    }
+
+    @Test
+    void deshacerSinPagosLanzaExcepcion() {
+        Prestamo prestamo = prestamoCaso1(BaseInteres.CAPITAL_INICIAL);
+
+        assertThrows(IllegalStateException.class, prestamo::deshacerUltimoPago);
     }
 
     // Cierre
