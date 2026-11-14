@@ -452,3 +452,145 @@ Al recalcular, cada cuota que nace busca su número en la tabla (O(1)) y, si est
 valor. Eso da el mismo resultado que si la condonación hubiera ocurrido en su momento. Un caso sutil: si el pago que
 se deshace es uno que había abonado a la multa antes de condonarla, ese abono vuelve a deberse, porque la condonación
 solo perdonó lo que faltaba, no lo que ya estaba pagado.
+
+---
+
+## Hito 4: Persistencia y casos de uso
+
+### Qué se construyó
+
+La aplicación ya guarda y lee sus datos de una base de datos H2 en archivo, y tiene los casos de uso que usará la web.
+
+```
+dominio            ← no cambió su forma: sigue sin Spring ni SQL
+aplicacion
+├── puertos        RepositorioClientes, RepositorioPrestamos, CifradorPin   (interfaces)
+└── casos de uso   DirectorioClientes, CrearCliente, CrearPrestamo, ConsultarPrestamos,
+                   RegistrarPago, DeshacerUltimoPago, CondonarMulta, CancelarPrestamo
+adaptadores
+├── persistencia   RepositorioClientesJdbc, RepositorioPrestamosJdbc, ConversorContrato
+├── seguridad      CifradorPinBCrypt
+└── configuracion  ConfiguracionReloj (Clock), ConfiguracionCasosDeUso (conecta todo)
+```
+
+Migraciones Flyway: `V1__crea_esquema.sql` (tablas) y `V2__datos_de_prueba.sql` (4 clientes y 5 préstamos inventados).
+Pruebas al cerrar el hito: 235 (72 nuevas).
+
+### La idea central: la base de datos guarda lo que pasó, el dominio calcula
+
+Se guardan solo cuatro cosas: **clientes**, el **contrato** de cada préstamo, sus **pagos** en orden y las
+**condonaciones**. No hay tabla de cuotas ni columnas de saldo o estado.
+
+Leer un préstamo es reconstruirlo, siempre igual:
+1. leer la fila del préstamo y armar el `Contrato` con el borrador;
+2. `new Prestamo(id, cedula, contrato)`;
+3. `restaurarCondonacion(...)` por cada condonación guardada;
+4. `registrarPago(...)` o `cancelar(...)` por cada pago, en orden de `id`.
+
+Ventajas: la base de datos nunca puede contradecir al cálculo (solo hay una fuente de verdad), deshacer es borrar
+una fila, y las reglas de negocio viven en un solo lugar (el dominio, que ya está probado).
+
+### Tablas
+
+| Tabla | Qué guarda | Detalles |
+|---|---|---|
+| `cliente` | datos y hash del PIN | cédula como llave primaria |
+| `prestamo` | las 11 condiciones del contrato | `frecuencia` + `dia_cobro`; `politica_mora` + `valor_mora`; enums con `CHECK ... IN` |
+| `pago` | fecha, monto, si fue cancelación, fecha-hora de registro | el `id` crece con cada pago: da el orden y es el número de recibo |
+| `condonacion` | número de cuota y en cuánto quedó fijada la multa | llave (préstamo, cuota): no se condona dos veces |
+
+SQL estándar (`GENERATED ALWAYS AS IDENTITY`, `DATE '...'`) y H2 en modo PostgreSQL: para migrar a PostgreSQL basta
+cambiar las variables `DB_URL`, `DB_USUARIO` y `DB_CLAVE`.
+
+### Arquitectura hexagonal: puertos y adaptadores
+
+- Un **puerto** es una interfaz en `aplicacion/puertos` que dice *qué* necesita la aplicación (guardar un pago,
+  cifrar un PIN) sin decir *cómo*.
+- Un **adaptador** en `adaptadores` lo implementa con una tecnología concreta (JDBC, BCrypt).
+- Los casos de uso son clases de **Java puro**, sin anotaciones de Spring. Spring los crea en un solo lugar:
+  `ConfiguracionCasosDeUso`. Gracias a eso se prueban con repositorios falsos en milisegundos.
+- Las excepciones de Spring no cruzan al centro: `DuplicateKeyException` se traduce a `IllegalArgumentException`.
+
+### Cómo trabaja cada caso de uso
+
+Todos siguen el mismo molde: **cargar → el dominio actúa y valida → guardar solo lo nuevo**.
+
+| Caso de uso | Lo que guarda |
+|---|---|
+| `RegistrarPago` | una fila en `pago` (fecha = hoy del reloj) |
+| `DeshacerUltimoPago` | borra la fila de pago con mayor `id` de ese préstamo |
+| `CondonarMulta` | una fila en `condonacion` |
+| `CancelarPrestamo` | una fila en `pago` marcada como cancelación |
+| `CrearPrestamo` | una fila en `prestamo`, tras validar monto mínimo y cupo |
+| `CrearCliente` | una fila en `cliente` con el PIN cifrado, y lo agrega a la tabla hash |
+
+Como el dominio actúa **antes** de guardar, si rechaza la operación la excepción sale antes del `INSERT` y la base
+de datos no cambia.
+
+**Cupo:** deuda vigente = capital adeudado de los préstamos activos del cliente (sin intereses ni multas). Si deuda +
+préstamo nuevo supera el cupo y el prestamista no ha confirmado, `CrearPrestamo` lanza `CupoExcedidoException` con los
+tres valores, para que la pantalla pida la confirmación.
+
+**Dinero sin centavos:** capital y pagos se rechazan si traen centavos; el dinero va al peso y las columnas no tienen decimales.
+
+### El reloj
+
+`ConfiguracionReloj` crea el único `Clock` del sistema, en `America/Bogota`. Si se arranca con
+`FECHA_SIMULADA=2027-01-20`, el reloj se corre los días necesarios para que "hoy" sea esa fecha (la hora sigue siendo
+la real). Así en la demo se puede mostrar cómo crece la mora sin tocar el código ni los datos.
+
+### Estructuras de datos en este hito
+
+| Dónde | Estructura | Por qué |
+|---|---|---|
+| `DirectorioClientes` | `TablaHash<String, Cliente>` | Búsqueda por cédula (buscador, cédula repetida, login del hito 6) en O(1) sin ir a la base de datos; se carga una vez al arrancar |
+| Repositorios | `ListaDoble<T>` | Cada fila leída se agrega con `agregarAlFinal`: ni siquiera el adaptador usa colecciones de `java.util` |
+| Reconstrucción | `Pila`, `ListaDoble`, `TablaHash` del dominio | Repetir los pagos usa las mismas estructuras de los hitos 2 y 3 |
+
+### Complejidad
+
+Con *c* clientes, *p* pagos de un préstamo, *n* cuotas y *P* préstamos:
+
+| Operación | Complejidad | Por qué |
+|---|---|---|
+| `DirectorioClientes.buscar` | O(1) promedio | tabla hash |
+| Cargar el directorio al arrancar | O(c) | una consulta y un `guardar` por cliente |
+| Leer un préstamo | O(p × n) + 3 consultas | repetir cada pago recorre el cronograma |
+| Listar todos | O(P × p × n) + 2 consultas por préstamo | se reconstruye cada uno |
+| Pagar, deshacer, condonar, cancelar | lo de leer + 1 `INSERT` o `DELETE` | |
+
+Para un solo prestamista (decenas o cientos de préstamos de máximo 24 cuotas) todo esto es instantáneo.
+
+### Datos de prueba (PIN 1234 para todos)
+
+| Cédula | Cliente | Préstamo | Estado a mediados de noviembre de 2026 |
+|---|---|---|---|
+| 1000000001 | Laura Gómez | 2.000.000 al 8 % mensual | al día |
+| 1000000001 | Laura Gómez | 300.000 al 3 % semanal (martes) | al día |
+| 1000000002 | Carlos Mejía | 1.500.000 al 10 % mensual, multa 2.000/día | en mora (cuotas 5 oct y 5 nov) |
+| 1000000003 | Marta Ospina | 5.000.000 al 3 % quincenal, capital vigente, sin domingos | abonó a capital; cuota del 15 nov pasa al 16 |
+| 1000000004 | Jorge Castaño | 1.000.000 al 10 % mensual, interés por días | cerrado por cancelación anticipada |
+
+`DatosDePruebaTest` comprueba estos estados a una fecha fija.
+
+### Preguntas que podría hacer el profesor
+
+**1. ¿Dónde guardan las cuotas y el saldo de cada préstamo?**
+
+No se guardan. La base de datos guarda solo lo que pasó: el contrato, los pagos en orden y las condonaciones. Al leer
+un préstamo, el repositorio lo crea con su contrato, restaura las condonaciones y repite los pagos; el dominio vuelve a
+generar las cuotas en la lista doble y a calcular saldos, estados y multas. Así no hay dos copias de la verdad que puedan
+quedar distintas, y deshacer un pago es simplemente borrar su fila.
+
+**2. ¿Para qué sirven los puertos si solo tienen una implementación?**
+
+En realidad tienen dos: la de JDBC, que usa la aplicación, y una en memoria (hecha con nuestras estructuras) que usan las
+pruebas de los casos de uso. El puerto hace que la aplicación dependa de una interfaz y no de JDBC ni de Spring: se puede
+probar sin base de datos, y cambiar H2 por PostgreSQL (o JDBC por otra cosa) solo toca el adaptador.
+
+**3. Si los clientes están en la base de datos, ¿por qué también están en una tabla hash?**
+
+Porque buscar por cédula es la operación más frecuente (buscador, validar que no se repita, login del cliente) y la
+tabla hash la resuelve en O(1) en memoria, con nuestra propia estructura. La base de datos es la que los guarda de forma
+permanente; la tabla se llena una sola vez al arrancar (`listarTodos`) y se actualiza cada vez que se crea un cliente.
+Sus métodos son `synchronized` para que dos peticiones web simultáneas no la dañen.
