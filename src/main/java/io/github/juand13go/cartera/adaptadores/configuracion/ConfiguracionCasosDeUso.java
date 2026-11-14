@@ -16,6 +16,7 @@ import io.github.juand13go.cartera.aplicacion.CrearPrestamo;
 import io.github.juand13go.cartera.aplicacion.DeshacerUltimoPago;
 import io.github.juand13go.cartera.aplicacion.DirectorioClientes;
 import io.github.juand13go.cartera.aplicacion.GenerarRecibo;
+import io.github.juand13go.cartera.aplicacion.IniciarSesion;
 import io.github.juand13go.cartera.aplicacion.RegistrarPago;
 import io.github.juand13go.cartera.aplicacion.puertos.CifradorPin;
 import io.github.juand13go.cartera.aplicacion.puertos.RepositorioClientes;
@@ -79,5 +80,12 @@ public class ConfiguracionCasosDeUso {
     @Bean
     public GenerarRecibo generarRecibo(RepositorioPrestamos repositorio, DirectorioClientes directorio) {
         return new GenerarRecibo(repositorio, directorio);
+    }
+
+    @Bean
+    public IniciarSesion iniciarSesion(DirectorioClientes directorio, CifradorPin cifrador,
+                                       @Value("${app.prestamista.usuario}") String usuario,
+                                       @Value("${app.prestamista.clave-cifrada}") String claveCifrada) {
+        return new IniciarSesion(directorio, cifrador, usuario, claveCifrada);
     }
 }
