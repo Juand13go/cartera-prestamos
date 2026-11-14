@@ -114,6 +114,8 @@ section {
 .menu .marca { font-family: var(--letra-titulos); font-weight: 600; font-size: 22px; }
 .menu nav { display: flex; gap: 16px; }
 .menu .hoy { margin-left: auto; font-size: 14px; }
+/* Fecha simulada en la demo: fondo ámbar para que nadie la confunda con la real. */
+.menu .hoy.simulada { background: var(--ambar); color: var(--texto); padding: 2px 10px; border-radius: 6px; }
 .menu .salir { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; }
 .menu .salir button { color: #fff; border-color: #fff; padding: 4px 10px; }
 
@@ -246,8 +248,13 @@ section > form.no-imprimir { margin-top: 12px; }
 .aviso.exito { background: var(--pagada-fondo); color: var(--pagada-texto); }
 .aviso.error { background: var(--mora-fondo); color: var(--mora-texto); }
 
-/* ---------- Login ---------- */
-.entrar { max-width: 420px; margin: 0 auto; }
+/* ---------- Login: una tarjeta centrada en la pantalla ---------- */
+.pagina-entrar main { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+.entrar { width: 100%; max-width: 400px; padding: 28px 24px 24px; margin: 0; }
+.entrar .marca-grande { margin: 0; text-align: center; font-size: 40px; color: var(--tinta); }
+.entrar .subtitulo { margin: 6px 0 20px; text-align: center; color: var(--suave); }
+.entrar .fecha-entrar { margin: 16px 0 0; text-align: center; }
+button.bloque { width: 100%; padding: 10px 16px; }
 
 /* ---------- Barra de progreso del portal del cliente ---------- */
 .progreso { display: flex; align-items: center; gap: 12px; margin: 8px 0; }

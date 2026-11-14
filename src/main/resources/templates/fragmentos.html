@@ -5,14 +5,14 @@
 <head th:fragment="cabeza(titulo)">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title th:text="${titulo} + ' · Cartera'">Cartera</title>
+    <title th:text="${titulo} + ' · Libreta'">Libreta</title>
     <link rel="stylesheet" th:href="@{/css/estilos.css}">
 </head>
 
 <body>
 
 <header th:fragment="menu" class="menu">
-    <a class="marca" th:href="@{/}">Cartera</a>
+    <a class="marca" th:href="@{/}">Libreta</a>
     <!-- El menú depende del rol; el interceptor de roles es el que de verdad bloquea en el backend. -->
     <nav th:if="${usuario != null and usuario.esPrestamista()}">
         <a th:href="@{/}">Panel</a>
@@ -21,7 +21,9 @@
     <nav th:if="${usuario != null and usuario.esCliente()}">
         <a th:href="@{/mis-prestamos}">Mis préstamos</a>
     </nav>
-    <span class="hoy">Hoy: <strong th:text="${#temporals.format(hoy, 'dd/MM/yyyy')}">14/11/2026</strong></span>
+    <!-- Si la fecha es simulada (app.fecha-simulada) se dice claramente, sobre fondo ámbar. -->
+    <span class="hoy" th:unless="${fechaSimulada}">Hoy: <strong th:text="${#temporals.format(hoy, 'dd/MM/yyyy')}">14/11/2026</strong></span>
+    <span class="hoy simulada" th:if="${fechaSimulada}">Hoy (simulado): <strong th:text="${#temporals.format(hoy, 'dd/MM/yyyy')}">20/01/2027</strong></span>
     <form th:if="${usuario != null}" class="salir" th:action="@{/salir}" method="post">
         <span th:text="${usuario.nombre}">Laura</span>
         <button type="submit" class="secundario">Salir</button>

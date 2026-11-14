@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabeza('Entrar')}"></head>
-<body>
-<header th:replace="~{fragmentos :: menu}"></header>
+<body class="pagina-entrar">
 
 <main>
     <!-- Un solo formulario: el sistema deduce si es el prestamista o un cliente a partir de la cuenta. -->
     <section class="entrar">
-        <h1>Entrar</h1>
+        <h1 class="marca-grande">Libreta</h1>
+        <p class="subtitulo">cartera de préstamos</p>
         <div th:replace="~{fragmentos :: mensajes}"></div>
         <p class="nota">Clientes: su cédula y su PIN. Prestamista: su usuario y su contraseña.</p>
         <form class="formulario" th:action="@{/login}" method="post">
@@ -15,8 +15,10 @@
                 <input type="text" name="identificador" th:value="${identificadorEscrito}" autocomplete="username" required autofocus></label>
             <label class="ancho">Contraseña
                 <input type="password" name="clave" autocomplete="current-password" required></label>
-            <div class="acciones ancho"><button type="submit">Entrar</button></div>
+            <div class="ancho"><button type="submit" class="bloque">Entrar</button></div>
         </form>
+        <p class="nota fecha-entrar" th:if="${fechaSimulada}"
+           th:text="'Hoy (simulado): ' + ${#temporals.format(hoy, 'dd/MM/yyyy')}">Hoy (simulado): 20/01/2027</p>
     </section>
 </main>
 </body>
