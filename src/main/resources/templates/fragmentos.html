@@ -11,23 +11,36 @@
 
 <body>
 
-<header th:fragment="menu" class="menu">
-    <a class="marca" th:href="@{/}">Libreta</a>
-    <!-- El menú depende del rol; el interceptor de roles es el que de verdad bloquea en el backend. -->
-    <nav th:if="${usuario != null and usuario.esPrestamista()}">
-        <a th:href="@{/}">Panel</a>
-        <a th:href="@{/clientes}">Clientes</a>
-    </nav>
-    <nav th:if="${usuario != null and usuario.esCliente()}">
-        <a th:href="@{/mis-prestamos}">Mis préstamos</a>
-    </nav>
-    <!-- Si la fecha es simulada (app.fecha-simulada) se dice claramente, en un recuadro con borde discontinuo. -->
-    <span class="hoy" th:unless="${fechaSimulada}">Hoy: <strong th:text="${#temporals.format(hoy, 'dd/MM/yyyy')}">14/11/2026</strong></span>
-    <span class="hoy simulada" th:if="${fechaSimulada}">Hoy (simulado): <strong th:text="${#temporals.format(hoy, 'dd/MM/yyyy')}">20/01/2027</strong></span>
-    <form th:if="${usuario != null}" class="salir" th:action="@{/salir}" method="post">
-        <span th:text="${usuario.nombre}">Laura</span>
-        <button type="submit">Salir</button>
-    </form>
+<!--
+  Barra superior. Recibe la sección actual (por ejemplo menu('panel')) para subrayar el enlace activo;
+  así cada plantilla dice dónde está y no hace falta tocar Java.
+-->
+<header th:fragment="menu(seccion)" class="menu">
+    <!-- Mismo ancho y margen que main, para que la marca quede alineada con el título de la página.
+         Las páginas del cliente usan la columna angosta, y la barra también. -->
+    <div class="menu-contenido" th:classappend="${seccion == 'mis-prestamos'} ? 'angosta'">
+        <a class="marca" th:href="@{/}">Libreta</a>
+        <!-- El menú depende del rol; el interceptor de roles es el que de verdad bloquea en el backend. -->
+        <nav th:if="${usuario != null and usuario.esPrestamista()}">
+            <a th:href="@{/}" th:classappend="${seccion == 'panel'} ? 'activo'"
+               th:attr="aria-current=${seccion == 'panel'} ? 'page'">Panel</a>
+            <a th:href="@{/clientes}" th:classappend="${seccion == 'clientes'} ? 'activo'"
+               th:attr="aria-current=${seccion == 'clientes'} ? 'page'">Clientes</a>
+        </nav>
+        <!-- El cliente solo tiene una sección, así que su enlace queda activo en todas sus páginas (también en el recibo). -->
+        <nav th:if="${usuario != null and usuario.esCliente()}">
+            <a class="activo" aria-current="page" th:href="@{/mis-prestamos}">Mis préstamos</a>
+        </nav>
+        <!-- Si la fecha es simulada (app.fecha-simulada) se dice claramente, con borde discontinuo. -->
+        <span class="hoy" th:unless="${fechaSimulada}">Hoy: <strong th:text="${#temporals.format(hoy, 'dd/MM/yyyy')}">14/11/2026</strong></span>
+        <span class="hoy simulada" th:if="${fechaSimulada}">Hoy (simulado): <strong th:text="${#temporals.format(hoy, 'dd/MM/yyyy')}">20/01/2027</strong></span>
+        <span class="divisor" th:if="${usuario != null}" aria-hidden="true"></span>
+        <!-- Salir sigue siendo un POST (cerrar sesión modifica datos); el botón solo se ve como enlace. -->
+        <form th:if="${usuario != null}" class="salir" th:action="@{/salir}" method="post">
+            <span class="usuario" th:text="${usuario.nombre}">Laura</span>
+            <button type="submit">Salir</button>
+        </form>
+    </div>
 </header>
 
 <!-- Mensajes que dejan las acciones (pagar, deshacer...) después de redirigir. -->

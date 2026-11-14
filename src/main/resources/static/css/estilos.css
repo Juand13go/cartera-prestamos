@@ -36,7 +36,6 @@
 
 /* ---------- Paleta: blanco y negro; el único color es el rojo de la mora ---------- */
 :root {
-    --barra: #111111;        /* barra superior */
     --fondo: #FAFAFA;        /* fondo de la página */
     --superficie: #FFFFFF;   /* tarjetas y tablas */
     --texto: #111111;        /* texto, botones y enlaces */
@@ -96,28 +95,73 @@ section {
     margin-bottom: 16px;
 }
 
-/* ---------- Barra superior ---------- */
+/* ---------- Barra superior: blanca, letras negras y una línea fina negra abajo ---------- */
 .menu {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px 24px;
-    padding: 12px 16px;
-    background: var(--barra);
-    color: #fff;
+    background: var(--superficie);
+    border-bottom: 1px solid var(--texto);
 }
-.menu a { color: #fff; text-decoration: none; }
-.menu a:hover { text-decoration: underline; }
-.menu .marca { font-family: var(--letra-titulos); font-weight: 600; font-size: 22px; }
-.menu nav { display: flex; gap: 16px; }
-.menu .hoy { margin-left: auto; font-size: 14px; }
-/* Fecha simulada en la demo: recuadro blanco con borde discontinuo para que nadie la confunda con la real. */
-.menu .hoy.simulada { background: var(--superficie); color: var(--texto); border: 1px dashed var(--texto); padding: 2px 10px; border-radius: 6px; }
-.menu .salir { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; }
-/* Salir: botón con borde blanco sobre la barra negra; al pasar el mouse se invierte. */
-.menu .salir button { background: transparent; color: #fff; border: 1px solid #fff; padding: 4px 10px; }
-.menu .salir button:hover { background: #fff; color: var(--texto); border-color: #fff; }
-.menu .salir button:focus-visible, .menu a:focus-visible { outline-color: #fff; }   /* el contorno negro no se vería sobre la barra */
+/* Mismo ancho máximo y margen que main, para que la marca quede alineada con el título. */
+.menu-contenido {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 16px;
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    gap: 0 24px;
+}
+.menu-contenido.angosta { max-width: 680px; }   /* páginas del cliente */
+.menu a { text-decoration: none; }
+.menu .marca { font-family: var(--letra-titulos); font-weight: 600; font-size: 24px; color: var(--texto); }
+
+/* Enlaces: ocupan todo el alto de la barra para que el subrayado del activo quede pegado al borde. */
+.menu nav { display: flex; gap: 20px; align-self: stretch; }
+.menu nav a {
+    display: flex;
+    align-items: center;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--suave);
+    border-bottom: 2px solid transparent;   /* transparente para que el activo no salte al subrayarse */
+}
+.menu nav a:hover { color: var(--texto); }
+/* Enlace activo: negro y subrayado de 2px, como un renglón de libreta. */
+.menu nav a.activo { color: var(--texto); border-bottom-color: var(--texto); }
+
+/* Fecha: etiqueta discreta empujada a la derecha. */
+.menu .hoy {
+    margin-left: auto;
+    padding: 2px 8px;
+    border: 1px solid var(--borde);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--suave);
+    white-space: nowrap;
+}
+.menu .hoy strong { font-weight: 500; color: var(--texto); }
+/* Fecha simulada en la demo: borde discontinuo para que nadie la confunda con la real. */
+.menu .hoy.simulada { border: 1px dashed var(--texto); color: var(--texto); }
+.menu .divisor { width: 1px; height: 24px; background: var(--borde); }
+
+/* Nombre del usuario y Salir. Salir es un botón de formulario (POST) que se ve como enlace. */
+.menu .salir { display: flex; align-items: center; gap: 12px; min-width: 0; margin: 0; font-size: 14px; }
+.menu .salir .usuario { color: var(--suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu .salir button { padding: 0; border: none; background: none; color: var(--texto); font-weight: 500; }
+.menu .salir button:hover { background: none; text-decoration: underline; }
+
+/* Menos de 720 px: marca y Salir arriba; enlaces y fecha en un segundo renglón. */
+@media (max-width: 720px) {
+    .menu-contenido { flex-wrap: wrap; gap: 0 16px; }
+    /* Un elemento invisible de ancho completo obliga a partir el renglón después de Salir. */
+    .menu-contenido::after { content: ""; order: 2; flex-basis: 100%; }
+    .menu .marca { order: 0; padding: 10px 0 2px; }
+    .menu .salir { order: 1; margin-left: auto; }
+    .menu .salir .usuario { max-width: 40vw; }
+    .menu nav { order: 3; }
+    .menu nav a { padding: 8px 0; }
+    .menu .hoy { order: 4; }   /* con margin-left: auto queda a la derecha; si no cabe, baja sola */
+    .menu .divisor { display: none; }
+}
 
 /* ---------- Tarjetas de resumen: la plata, lo primero que se ve ---------- */
 .resumen {
@@ -338,7 +382,7 @@ main.angosta { max-width: 680px; }
     main { padding: 12px 12px 24px; }
     h1 { font-size: 24px; }
     section { padding: 4px 12px 12px; }
-    .menu .hoy { margin-left: 0; }
+    .menu-contenido { padding: 0 12px; }   /* igual que main en el celular */
     .datos { grid-template-columns: 1fr; gap: 0; }
     .datos dd { margin-bottom: 8px; }
     .tarjeta-resumen .cifra { font-size: 26px; }

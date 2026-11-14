@@ -2,7 +2,7 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabeza('Préstamo #' + ${prestamo.id})}"></head>
 <body>
-<header th:replace="~{fragmentos :: menu}"></header>
+<header th:replace="~{fragmentos :: menu('mis-prestamos')}"></header>
 
 <!-- Pensado primero para celular: una sola columna y lo importante (cuánto y cuándo) arriba. -->
 <main class="angosta" th:with="proxima=${prestamo.proximaCuotaPendiente()}">

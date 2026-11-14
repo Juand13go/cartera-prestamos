@@ -2,7 +2,7 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragmentos :: cabeza(${cliente.nombre})}"></head>
 <body>
-<header th:replace="~{fragmentos :: menu}"></header>
+<header th:replace="~{fragmentos :: menu('clientes')}"></header>
 
 <main>
     <h1 th:text="${cliente.nombre}">Laura Gómez</h1>
