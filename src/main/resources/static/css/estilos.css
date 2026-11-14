@@ -87,3 +87,45 @@ tr.resaltada { background: var(--resaltado); }
     body { background: #fff; }
     section { border: none; }
 }
+
+/* Formularios y botones */
+.formulario {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px 16px;
+    margin-top: 12px;
+}
+.formulario label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--suave); }
+.formulario .ancho { grid-column: 1 / -1; }
+.formulario fieldset { grid-column: 1 / -1; border: 1px solid var(--borde); border-radius: 6px; padding: 8px 12px 12px; }
+.formulario legend { font-weight: 600; color: var(--texto); }
+.en-linea { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+input, select, textarea {
+    font: inherit;
+    color: var(--texto);
+    padding: 8px 10px;
+    border: 1px solid var(--borde);
+    border-radius: 6px;
+    background: var(--superficie);
+    max-width: 100%;
+}
+button, .boton {
+    display: inline-block;
+    font: inherit;
+    padding: 8px 14px;
+    border: 1px solid var(--principal);
+    border-radius: 6px;
+    background: var(--principal);
+    color: var(--principal-texto);
+    text-decoration: none;
+    cursor: pointer;
+}
+.boton.secundario, button.secundario { background: transparent; color: var(--principal); }
+button.peligro { background: var(--mora); border-color: var(--mora); }
+.acciones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+/* Listas de datos (ficha del cliente, resumen del préstamo) */
+.datos { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 12px 0 0; }
+.datos dt { color: var(--suave); }
+.datos dd { margin: 0; }
+.etiqueta.activo { background: var(--exito); color: var(--exito-texto); }

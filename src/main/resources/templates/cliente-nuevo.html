@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabeza('Nuevo cliente')}"></head>
+<body>
+<header th:replace="~{fragmentos :: menu}"></header>
+
+<main>
+    <h1>Nuevo cliente</h1>
+    <div th:replace="~{fragmentos :: mensajes}"></div>
+
+    <section>
+        <form class="formulario" th:action="@{/clientes}" th:object="${formulario}" method="post">
+            <label>Cédula <input type="text" th:field="*{cedula}" inputmode="numeric" required></label>
+            <label>Nombre completo <input type="text" th:field="*{nombre}" required></label>
+            <label>Celular (10 dígitos) <input type="text" th:field="*{telefono}" inputmode="numeric" required></label>
+            <label>Dirección <input type="text" th:field="*{direccion}"></label>
+            <label>Referencia <input type="text" th:field="*{referencia}" placeholder="Quién da referencias del cliente"></label>
+            <label>Cupo máximo (pesos) <input type="number" th:field="*{cupoMaximo}" min="0" step="1" required></label>
+            <label class="ancho">Notas internas (solo las ve el prestamista) <textarea th:field="*{notas}" rows="3"></textarea></label>
+            <label>PIN para entrar (4 dígitos) <input type="password" th:field="*{pin}" inputmode="numeric" maxlength="4" required></label>
+            <div class="acciones ancho">
+                <button type="submit">Guardar cliente</button>
+                <a class="boton secundario" th:href="@{/clientes}">Cancelar</a>
+            </div>
+        </form>
+    </section>
+</main>
+</body>
+</html>

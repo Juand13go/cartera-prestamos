@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabeza('Clientes')}"></head>
+<body>
+<header th:replace="~{fragmentos :: menu}"></header>
+
+<main>
+    <h1>Clientes</h1>
+    <div th:replace="~{fragmentos :: mensajes}"></div>
+
+    <section>
+        <h2>Buscar por cédula</h2>
+        <form class="en-linea" th:action="@{/clientes}" method="get">
+            <input type="text" name="cedula" inputmode="numeric" placeholder="Cédula" th:value="${cedulaBuscada}" required>
+            <button type="submit">Buscar</button>
+            <a class="boton secundario" th:href="@{/clientes/nuevo}">Nuevo cliente</a>
+        </form>
+    </section>
+
+    <section>
+        <h2>Todos los clientes</h2>
+        <p th:if="${clientes.estaVacia()}" class="vacio">Todavía no hay clientes.</p>
+        <div class="tabla" th:unless="${clientes.estaVacia()}">
+            <table>
+                <thead>
+                <tr><th>Nombre</th><th>Cédula</th><th>Teléfono</th><th class="numero">Cupo</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="cliente : ${clientes}">
+                    <td><a th:href="@{/clientes/{c}(c=${cliente.cedula})}" th:text="${cliente.nombre}">Laura</a></td>
+                    <td th:text="${cliente.cedula}">1000000001</td>
+                    <td th:text="${cliente.telefono}">3000000001</td>
+                    <td class="numero" th:text="'$' + ${#numbers.formatInteger(cliente.cupoMaximo, 1, 'POINT')}">$5.000.000</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+</body>
+</html>

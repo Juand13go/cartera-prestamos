@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabeza(${cliente.nombre})}"></head>
+<body>
+<header th:replace="~{fragmentos :: menu}"></header>
+
+<main>
+    <h1 th:text="${cliente.nombre}">Laura Gómez</h1>
+    <div th:replace="~{fragmentos :: mensajes}"></div>
+
+    <section>
+        <h2>Datos</h2>
+        <dl class="datos">
+            <dt>Cédula</dt><dd th:text="${cliente.cedula}">1000000001</dd>
+            <dt>Celular</dt><dd th:text="${cliente.telefono}">3000000001</dd>
+            <dt>Dirección</dt><dd th:text="${#strings.isEmpty(cliente.direccion)} ? '—' : ${cliente.direccion}">Calle 1</dd>
+            <dt>Referencia</dt><dd th:text="${#strings.isEmpty(cliente.referencia)} ? '—' : ${cliente.referencia}">Diana</dd>
+            <dt>Cupo máximo</dt><dd th:text="'$' + ${#numbers.formatInteger(cliente.cupoMaximo, 1, 'POINT')}">$5.000.000</dd>
+            <dt>Deuda vigente</dt><dd th:text="'$' + ${#numbers.formatInteger(deudaVigente, 1, 'POINT')}">$2.000.000</dd>
+            <dt>Notas internas</dt><dd th:text="${#strings.isEmpty(cliente.notas)} ? '—' : ${cliente.notas}">Paga puntual.</dd>
+        </dl>
+    </section>
+
+    <section>
+        <h2>Préstamos</h2>
+        <p><a class="boton" th:href="@{/prestamos/nuevo(cedula=${cliente.cedula})}">Nuevo préstamo</a></p>
+        <p th:if="${prestamos.estaVacia()}" class="vacio">Este cliente no tiene préstamos.</p>
+        <div class="tabla" th:unless="${prestamos.estaVacia()}">
+            <table>
+                <thead>
+                <tr><th>Préstamo</th><th>Desembolso</th><th class="numero">Capital prestado</th>
+                    <th class="numero">Capital que debe</th><th class="numero">Saldo hoy</th><th>Estado</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="prestamo : ${prestamos}">
+                    <td><a th:href="@{/prestamos/{id}(id=${prestamo.id})}" th:text="'#' + ${prestamo.id}">#1</a></td>
+                    <td th:text="${#temporals.format(prestamo.contrato.fechaDesembolso, 'dd/MM/yyyy')}">10/08/2026</td>
+                    <td class="numero" th:text="'$' + ${#numbers.formatInteger(prestamo.contrato.capital, 1, 'POINT')}">$2.000.000</td>
+                    <td class="numero" th:text="'$' + ${#numbers.formatInteger(prestamo.capitalAdeudado(), 1, 'POINT')}">$2.000.000</td>
+                    <td class="numero" th:text="'$' + ${#numbers.formatInteger(prestamo.saldoTotal(hoy), 1, 'POINT')}">$2.160.000</td>
+                    <td>
+                        <span th:if="${prestamo.estaCerrado()}" class="etiqueta">cerrado</span>
+                        <span th:unless="${prestamo.estaCerrado()}" class="etiqueta activo">activo</span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+</body>
+</html>
