@@ -5,11 +5,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.context.WebApplicationContext;
 
 /** Pide la página como lo haría el navegador y revisa el HTML que devuelve, con los datos de prueba. */
 @SpringBootTest
@@ -17,7 +19,15 @@ import org.springframework.test.web.servlet.MockMvc;
 class PanelControladorTest {
 
     @Autowired
+    private WebApplicationContext contexto;
+
     private MockMvc mvc;
+
+    /** Todas las peticiones de esta clase entran como prestamista (el interceptor de roles lo exige). */
+    @BeforeEach
+    void entrarComoPrestamista() {
+        mvc = Sesiones.comoPrestamista(contexto);
+    }
 
     @Test
     void elPanelMuestraLaAgendaYLaMora() throws Exception {

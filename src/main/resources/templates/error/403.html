@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<!-- Spring Boot muestra esta página cuando una petición termina en 403 (por ejemplo, la bloqueó el interceptor de roles). -->
+<head th:replace="~{fragmentos :: cabeza('Sin permiso')}"></head>
+<body>
+<header class="menu"><a class="marca" th:href="@{/}">Cartera</a></header>
+<main>
+    <section>
+        <h1>No tiene permiso para ver esta página</h1>
+        <p>Si cree que es un error, vuelva al inicio o entre con otro usuario.</p>
+        <p class="acciones">
+            <a class="boton" th:href="@{/}">Ir al inicio</a>
+            <a class="boton secundario" th:href="@{/login}">Entrar con otro usuario</a>
+        </p>
+    </section>
+</main>
+</body>
+</html>
