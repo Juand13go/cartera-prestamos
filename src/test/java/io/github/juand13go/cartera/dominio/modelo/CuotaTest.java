@@ -140,4 +140,34 @@ class CuotaTest {
 
         assertEquals(0, cuota.diasDeAtraso(LocalDate.of(2027, 3, 1)));
     }
+
+    // Condonación
+
+    @Test
+    void sinCondonarSeCobraTodaLaMultaCalculada() {
+        Cuota cuota = cuotaDeFebrero();
+
+        assertFalse(cuota.estaMultaCondonada());
+        assertEquals(new BigDecimal("6000"), cuota.multaACobrar(new BigDecimal("6000")));
+    }
+
+    @Test
+    void condonadaLaMultaQuedaFijaEnLoQueYaEstabaPagado() {
+        Cuota cuota = cuotaDeFebrero();
+        cuota.abonarMulta(new BigDecimal("4000"));
+
+        cuota.condonarMulta(cuota.getMultaPagada());
+
+        assertTrue(cuota.estaMultaCondonada());
+        assertEquals(new BigDecimal("4000"), cuota.multaACobrar(new BigDecimal("6000")));
+        assertEquals(new BigDecimal("4000"), cuota.multaACobrar(new BigDecimal("20000")));
+    }
+
+    @Test
+    void noSePuedeCondonarDosVeces() {
+        Cuota cuota = cuotaDeFebrero();
+        cuota.condonarMulta(BigDecimal.ZERO);
+
+        assertThrows(IllegalStateException.class, () -> cuota.condonarMulta(BigDecimal.ZERO));
+    }
 }

@@ -297,6 +297,80 @@ class PrestamoTest {
         assertEquals(pesos("2000"), prestamo.getCronograma().obtener(1).getMultaPagada());
     }
 
+    // Condonación (caso 1 con multa de $2.000 diarios; el 15 dic la cuota 1 debe $6.000 de multa)
+
+    @Test
+    void condonarAntesDePagarHaceQueTodoElPagoVayaACuotas() {
+        Prestamo prestamo = prestamoConMulta(OrdenImputacion.MULTAS_PRIMERO);
+        LocalDate quinceDic = LocalDate.of(2026, 12, 15);
+
+        prestamo.condonarMulta(1, quinceDic);
+
+        assertEquals(pesos("0"), prestamo.saldoMulta(prestamo.getCronograma().primero(), quinceDic));
+        Pago pago = prestamo.registrarPago(quinceDic, pesos("170000"));
+        assertEquals(pesos("0"), pago.getAbonoAMultas());
+        assertEquals(pesos("170000"), pago.getAbonoACuotas());
+    }
+
+    @Test
+    void unaMultaCondonadaNoVuelveACrecer() {
+        Prestamo prestamo = prestamoConMulta(OrdenImputacion.MULTAS_PRIMERO);
+
+        prestamo.condonarMulta(1, LocalDate.of(2026, 12, 15));
+
+        assertEquals(pesos("0"), prestamo.saldoMulta(prestamo.getCronograma().primero(), LocalDate.of(2027, 1, 20)));
+    }
+
+    @Test
+    void condonarRespetaLoQueYaSeHabiaPagadoDeLaMulta() {
+        Prestamo prestamo = prestamoConMulta(OrdenImputacion.MULTAS_PRIMERO);
+        prestamo.registrarPago(LocalDate.of(2026, 12, 15), pesos("4000"));
+
+        prestamo.condonarMulta(1, LocalDate.of(2026, 12, 15));
+
+        Cuota primera = prestamo.getCronograma().primero();
+        assertEquals(pesos("4000"), primera.getMultaPagada());
+        assertEquals(pesos("0"), prestamo.saldoMulta(primera, LocalDate.of(2026, 12, 20)));
+    }
+
+    @Test
+    void laCondonacionSobreviveAlDeshacerUnPagoPosterior() {
+        Prestamo prestamo = prestamoConMulta(OrdenImputacion.MULTAS_PRIMERO);
+        prestamo.condonarMulta(1, LocalDate.of(2026, 12, 15));
+        prestamo.registrarPago(LocalDate.of(2026, 12, 20), pesos("170000"));
+
+        prestamo.deshacerUltimoPago();
+
+        Cuota primera = prestamo.getCronograma().primero();
+        assertTrue(primera.estaMultaCondonada());
+        assertEquals(pesos("0"), prestamo.saldoMulta(primera, LocalDate.of(2026, 12, 20)));
+    }
+
+    @Test
+    void deshacerUnPagoHechoAntesDeCondonarVuelveACobrarLoQueEsePagoHabiaCubierto() {
+        // Se condonó "lo que faltaba" cuando ya había 4.000 pagados. Si se anula ese pago,
+        // los 4.000 vuelven a deberse: la condonación nunca los perdonó.
+        Prestamo prestamo = prestamoConMulta(OrdenImputacion.MULTAS_PRIMERO);
+        prestamo.registrarPago(LocalDate.of(2026, 12, 15), pesos("4000"));
+        prestamo.condonarMulta(1, LocalDate.of(2026, 12, 15));
+
+        prestamo.deshacerUltimoPago();
+        prestamo.actualizarCronograma(LocalDate.of(2026, 12, 20));
+
+        assertEquals(pesos("4000"), prestamo.saldoMulta(prestamo.getCronograma().primero(), LocalDate.of(2026, 12, 20)));
+    }
+
+    @Test
+    void condonarUnaCuotaQueNoExisteOYaCondonadaLanzaExcepcion() {
+        Prestamo prestamo = prestamoConMulta(OrdenImputacion.MULTAS_PRIMERO);
+        LocalDate quinceDic = LocalDate.of(2026, 12, 15);
+
+        assertThrows(IllegalArgumentException.class, () -> prestamo.condonarMulta(0, quinceDic));
+        assertThrows(IllegalArgumentException.class, () -> prestamo.condonarMulta(3, quinceDic));
+        prestamo.condonarMulta(1, quinceDic);
+        assertThrows(IllegalStateException.class, () -> prestamo.condonarMulta(1, quinceDic));
+    }
+
     // Deshacer
 
     @Test

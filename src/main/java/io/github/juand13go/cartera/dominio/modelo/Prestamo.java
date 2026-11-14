@@ -6,6 +6,7 @@ import java.time.LocalDate;
 
 import io.github.juand13go.cartera.dominio.estructuras.ListaDoble;
 import io.github.juand13go.cartera.dominio.estructuras.Pila;
+import io.github.juand13go.cartera.dominio.estructuras.TablaHash;
 import io.github.juand13go.cartera.dominio.politicas.OrdenImputacion;
 
 /**
@@ -23,6 +24,9 @@ import io.github.juand13go.cartera.dominio.politicas.OrdenImputacion;
  * Un préstamo es su contrato más sus pagos en orden: aplicar los mismos pagos en el mismo
  * orden siempre produce el mismo estado. Por eso deshacer es sacar el último pago de la pila
  * y volver a aplicar los demás desde cero.
+ *
+ * Las condonaciones de multa se guardan aparte (número de cuota → lo que ya estaba pagado)
+ * y se vuelven a aplicar a cada cuota cuando nace, para que sobrevivan al recálculo.
  */
 public class Prestamo {
     private static final BigDecimal CIEN = new BigDecimal("100");
@@ -32,6 +36,7 @@ public class Prestamo {
     private ListaDoble<Cuota> cronograma;
     private Pila<Pago> pagos;
     private BigDecimal capitalPendiente;
+    private final TablaHash<Integer, BigDecimal> condonaciones;
 
     /** Crea el préstamo el día del desembolso, con su primera cuota ya generada. */
     public Prestamo(String cedulaCliente, Contrato contrato) {
@@ -43,6 +48,7 @@ public class Prestamo {
         }
         this.cedulaCliente = cedulaCliente;
         this.contrato = contrato;
+        this.condonaciones = new TablaHash<>();
         empezarDesdeElDesembolso();
     }
 
@@ -81,8 +87,23 @@ public class Prestamo {
 
     /** Lo que falta pagar de la multa de una cuota a la fecha {@code hoy}. */
     public BigDecimal saldoMulta(Cuota cuota, LocalDate hoy) {
-        BigDecimal falta = contrato.multa(cuota, hoy).subtract(cuota.getMultaPagada());
+        BigDecimal multa = cuota.multaACobrar(contrato.multa(cuota, hoy));
+        BigDecimal falta = multa.subtract(cuota.getMultaPagada());
         return falta.max(BigDecimal.ZERO);
+    }
+
+    /**
+     * El prestamista anula lo que falta de la multa de una cuota. Lo ya pagado se respeta.
+     * Se anota en la tabla de condonaciones para que sobreviva si luego se deshace un pago.
+     */
+    public void condonarMulta(int numeroCuota, LocalDate hoy) {
+        actualizarCronograma(hoy);
+        if (numeroCuota < 1 || numeroCuota > cronograma.tamano()) {
+            throw new IllegalArgumentException("No existe la cuota " + numeroCuota);
+        }
+        Cuota cuota = cronograma.obtener(numeroCuota - 1);
+        cuota.condonarMulta(cuota.getMultaPagada());
+        condonaciones.guardar(numeroCuota, cuota.getMultaPagada());
     }
 
     /**
@@ -234,7 +255,12 @@ public class Prestamo {
     private void agregarSiguienteCuota() {
         int numero = cronograma.tamano() + 1;
         LocalDate vence = contrato.fechaVencimiento(numero);
-        cronograma.agregarAlFinal(new Cuota(numero, vence, interesDelPeriodo()));
+        Cuota cuota = new Cuota(numero, vence, interesDelPeriodo());
+        BigDecimal condonadaEn = condonaciones.buscar(numero);
+        if (condonadaEn != null) {
+            cuota.condonarMulta(condonadaEn);
+        }
+        cronograma.agregarAlFinal(cuota);
     }
 
     /** Base del interés × tasa / 100, redondeado al peso. */

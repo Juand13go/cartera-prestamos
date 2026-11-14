@@ -15,6 +15,7 @@ public class Cuota {
     private BigDecimal valorCubierto;
     private LocalDate fechaCubierta;
     private BigDecimal multaPagada;
+    private BigDecimal multaCondonadaEn;
 
     public Cuota(int numero, LocalDate fechaVencimiento, BigDecimal valor) {
         this.numero = numero;
@@ -23,6 +24,7 @@ public class Cuota {
         this.valorCubierto = BigDecimal.ZERO;
         this.fechaCubierta = null;
         this.multaPagada = BigDecimal.ZERO;
+        this.multaCondonadaEn = null;
     }
 
     public int getNumero() {
@@ -60,6 +62,32 @@ public class Cuota {
             throw new IllegalArgumentException("El monto debe ser mayor que cero");
         }
         multaPagada = multaPagada.add(monto);
+    }
+
+    public boolean estaMultaCondonada() {
+        return multaCondonadaEn != null;
+    }
+
+    /**
+     * Condona la multa: desde ahora la multa queda fija en {@code loYaPagado}.
+     * Lo que ya se había pagado se respeta; lo que faltaba (y lo que se iba a sumar) se anula.
+     */
+    public void condonarMulta(BigDecimal loYaPagado) {
+        if (estaMultaCondonada()) {
+            throw new IllegalStateException("La multa de la cuota " + numero + " ya fue condonada");
+        }
+        multaCondonadaEn = loYaPagado;
+    }
+
+    /**
+     * De la multa que calcula el contrato, cuánto se cobra:
+     * toda si no fue condonada; si fue condonada, como máximo lo que ya estaba pagado al condonar.
+     */
+    public BigDecimal multaACobrar(BigDecimal multaCalculada) {
+        if (estaMultaCondonada()) {
+            return multaCalculada.min(multaCondonadaEn);
+        }
+        return multaCalculada;
     }
 
     /** Lo que falta por pagar de esta cuota. */
