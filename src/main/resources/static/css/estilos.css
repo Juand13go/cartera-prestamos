@@ -132,3 +132,9 @@ button.peligro { background: var(--mora); border-color: var(--mora); }
 .formulario label.casilla { flex-direction: row; align-items: center; gap: 8px; color: var(--texto); }
 section form + form { margin-top: 0; }
 section > form.no-imprimir { margin-top: 12px; }
+
+/* Recibo */
+.recibo { max-width: 520px; margin: 0 auto 16px; padding-top: 12px; }
+.recibo h1 { font-size: 22px; }
+.valor-recibo { font-size: 20px; margin: 16px 0 8px; }
+main > .acciones { justify-content: center; }

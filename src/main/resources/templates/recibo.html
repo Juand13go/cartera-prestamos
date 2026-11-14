@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabeza('Recibo N° ' + ${recibo.numero})}"></head>
+<body>
+<header th:replace="~{fragmentos :: menu}"></header>
+
+<main>
+    <div class="no-imprimir" th:insert="~{fragmentos :: mensajes}"></div>
+
+    <section class="recibo">
+        <h1>Recibo N° <span th:text="${recibo.numero}">123</span></h1>
+        <dl class="datos">
+            <dt>Fecha y hora</dt><dd th:text="${#temporals.format(recibo.fechaHora, 'dd/MM/yyyy HH:mm')}">10/12/2026 09:30</dd>
+            <dt>Cliente</dt><dd th:text="${recibo.cliente.nombre} + ' (C.C. ' + ${recibo.cliente.cedula} + ')'">Laura</dd>
+            <dt>Préstamo</dt><dd th:text="'#' + ${recibo.prestamoId}">#1</dd>
+            <dt>Fecha del pago</dt><dd th:text="${#temporals.format(recibo.pago.fecha, 'dd/MM/yyyy')}">10/12/2026</dd>
+        </dl>
+
+        <p class="valor-recibo">Valor pagado: <strong th:text="${@textos.pesos(recibo.valor)}">$160.000</strong>
+            <span th:if="${recibo.pago.cancelacion}" class="etiqueta">cancelación total</span></p>
+
+        <table>
+            <tbody>
+            <tr><td>A multas</td><td class="numero" th:text="${@textos.pesos(recibo.pago.abonoAMultas)}">$0</td></tr>
+            <tr><td>A cuotas</td><td class="numero" th:text="${@textos.pesos(recibo.pago.abonoACuotas)}">$160.000</td></tr>
+            <tr><td>A capital</td><td class="numero" th:text="${@textos.pesos(recibo.pago.abonoACapital)}">$0</td></tr>
+            </tbody>
+        </table>
+
+        <dl class="datos">
+            <dt>Cuotas cubiertas</dt><dd th:text="${@textos.cuotas(recibo.cuotasCubiertas)}">1</dd>
+            <dt>Saldo restante</dt><dd><strong th:text="${@textos.pesos(recibo.saldoRestante)}">$2.000.000</strong></dd>
+        </dl>
+    </section>
+
+    <div class="acciones no-imprimir">
+        <button type="button" onclick="window.print()">Imprimir</button>
+        <a class="boton" th:href="${enlaceWhatsapp}" target="_blank" rel="noopener">Enviar por WhatsApp</a>
+        <a class="boton secundario" th:href="@{/prestamos/{id}(id=${recibo.prestamoId})}">Volver al préstamo</a>
+    </div>
+</main>
+</body>
+</html>

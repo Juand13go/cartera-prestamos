@@ -1,13 +1,19 @@
 package io.github.juand13go.cartera.adaptadores.web;
 
 import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.DayOfWeek;
+import java.time.format.DateTimeFormatter;
 
 import org.springframework.stereotype.Component;
 
+import io.github.juand13go.cartera.dominio.estructuras.ListaDoble;
 import io.github.juand13go.cartera.dominio.modelo.EstadoCuota;
+import io.github.juand13go.cartera.dominio.modelo.Pago;
+import io.github.juand13go.cartera.dominio.modelo.Recibo;
 import io.github.juand13go.cartera.dominio.politicas.Frecuencia;
 import io.github.juand13go.cartera.dominio.politicas.FrecuenciaMensual;
 import io.github.juand13go.cartera.dominio.politicas.FrecuenciaSemanal;
@@ -60,6 +66,44 @@ public class Textos {
             case PAGADA_CON_RETRASO -> "Pagada con retraso";
             case MORA -> "En mora";
         };
+    }
+
+    /** "1, 2" o "Ninguna" si el pago no completó ninguna cuota. */
+    public String cuotas(ListaDoble<Integer> numeros) {
+        if (numeros.estaVacia()) {
+            return "Ninguna";
+        }
+        StringBuilder texto = new StringBuilder();
+        for (Integer numero : numeros) {
+            if (texto.length() > 0) {
+                texto.append(", ");
+            }
+            texto.append(numero);
+        }
+        return texto.toString();
+    }
+
+    /** El recibo como texto plano, para enviarlo por WhatsApp. */
+    public String textoRecibo(Recibo recibo) {
+        Pago pago = recibo.getPago();
+        return "Recibo N° " + recibo.getNumero() + " - Préstamo #" + recibo.getPrestamoId() + "\n"
+                + "Cliente: " + recibo.getCliente().getNombre() + "\n"
+                + "Fecha: " + recibo.getFechaHora().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + "\n"
+                + "Valor pagado: " + pesos(recibo.getValor()) + "\n"
+                + "A multas: " + pesos(pago.getAbonoAMultas())
+                + " | A cuotas: " + pesos(pago.getAbonoACuotas())
+                + " | A capital: " + pesos(pago.getAbonoACapital()) + "\n"
+                + "Cuotas cubiertas: " + cuotas(recibo.getCuotasCubiertas()) + "\n"
+                + "Saldo restante: " + pesos(recibo.getSaldoRestante());
+    }
+
+    /**
+     * https://wa.me/57<celular>?text=<recibo>. El texto se codifica para URL (espacios, tildes y saltos de línea
+     * se vuelven códigos como %20). URLEncoder pone "+" en los espacios; se cambian por %20, que WhatsApp entiende siempre.
+     */
+    public String enlaceWhatsapp(Recibo recibo) {
+        String texto = URLEncoder.encode(textoRecibo(recibo), StandardCharsets.UTF_8).replace("+", "%20");
+        return "https://wa.me/57" + recibo.getCliente().getTelefono() + "?text=" + texto;
     }
 
     private static String diaDeLaSemana(DayOfWeek dia) {
