@@ -34,22 +34,19 @@
     font-display: swap;
 }
 
-/* ---------- Paleta ---------- */
+/* ---------- Paleta: blanco y negro; el único color es el rojo de la mora ---------- */
 :root {
-    --tinta: #0F4C45;        /* color principal: barra, botones, enlaces */
-    --fondo: #F7F5F0;        /* papel de la libreta */
+    --barra: #111111;        /* barra superior */
+    --fondo: #FAFAFA;        /* fondo de la página */
     --superficie: #FFFFFF;   /* tarjetas y tablas */
-    --texto: #1C2321;
-    --suave: #5C6663;        /* notas y etiquetas secundarias */
-    --borde: #E2DED5;
+    --texto: #111111;        /* texto, botones y enlaces */
+    --suave: #555555;        /* notas y etiquetas secundarias */
+    --borde: #DDDDDD;
+    --gris-claro: #EEEEEE;   /* cuota pagada, fila resaltada, aviso de éxito */
 
-    /* Estados de cuota: texto sobre fondo. Todos cumplen contraste WCAG AA (≥ 4.5:1). */
-    --pagada-texto: #2D794C;      --pagada-fondo: #E7F3EC;
-    --con-tiempo-texto: #3B5B7A;  --con-tiempo-fondo: #E8EEF4;
-    --retraso-texto: #926411;     --retraso-fondo: #FBF1DC;
-    --mora-texto: #B42318;        --mora-fondo: #FDECEA;
-
-    --ambar: #F5C451;        /* aviso de fecha simulada */
+    /* Mora: lo único en rojo, para que salte a la vista. Contraste WCAG AA (≥ 4.5:1). */
+    --mora-texto: #B42318;
+    --mora-fondo: #FDECEA;
 
     --letra-titulos: "Fraunces", Georgia, "Times New Roman", serif;
     --letra-texto: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -68,7 +65,7 @@ body {
     line-height: 1.5;
 }
 
-a { color: var(--tinta); }
+a { color: var(--texto); text-decoration: underline; }
 
 main { max-width: 1100px; margin: 0 auto; padding: 16px; }
 
@@ -106,7 +103,7 @@ section {
     align-items: center;
     gap: 8px 24px;
     padding: 12px 16px;
-    background: var(--tinta);
+    background: var(--barra);
     color: #fff;
 }
 .menu a { color: #fff; text-decoration: none; }
@@ -114,8 +111,8 @@ section {
 .menu .marca { font-family: var(--letra-titulos); font-weight: 600; font-size: 22px; }
 .menu nav { display: flex; gap: 16px; }
 .menu .hoy { margin-left: auto; font-size: 14px; }
-/* Fecha simulada en la demo: fondo ámbar para que nadie la confunda con la real. */
-.menu .hoy.simulada { background: var(--ambar); color: var(--texto); padding: 2px 10px; border-radius: 6px; }
+/* Fecha simulada en la demo: recuadro blanco con borde discontinuo para que nadie la confunda con la real. */
+.menu .hoy.simulada { background: var(--superficie); color: var(--texto); border: 1px dashed var(--texto); padding: 2px 10px; border-radius: 6px; }
 .menu .salir { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; }
 .menu .salir button { color: #fff; border-color: #fff; padding: 4px 10px; }
 
@@ -146,7 +143,7 @@ section {
 .tarjeta-resumen.alerta { border-color: var(--mora-texto); }
 .tarjeta-resumen.alerta .cifra { color: var(--mora-texto); }
 
-/* ---------- Etiquetas: siempre llevan texto, el color solo acompaña ---------- */
+/* ---------- Etiquetas: siempre llevan texto; sin color, salvo la mora ---------- */
 .etiqueta {
     display: inline-block;
     padding: 1px 10px;
@@ -160,16 +157,16 @@ section {
     white-space: nowrap;
 }
 .etiqueta.estado-PAGADA, .etiqueta.activo {
-    background: var(--pagada-fondo); color: var(--pagada-texto); border-color: transparent;
+    background: var(--gris-claro); color: var(--texto); border-color: transparent;
 }
 .etiqueta.estado-CON_TIEMPO {
-    background: var(--con-tiempo-fondo); color: var(--con-tiempo-texto); border-color: transparent;
+    background: var(--superficie); color: var(--texto); border-color: var(--suave);
 }
 .etiqueta.estado-PAGADA_CON_RETRASO {
-    background: var(--retraso-fondo); color: var(--retraso-texto); border-color: transparent;
+    background: var(--superficie); color: var(--texto); border: 1px dashed var(--texto);
 }
 .etiqueta.estado-MORA, .etiqueta.mora {
-    background: var(--mora-fondo); color: var(--mora-texto); border-color: transparent;
+    background: var(--mora-fondo); color: var(--mora-texto); border-color: var(--mora-texto);
 }
 
 /* ---------- Tablas ---------- */
@@ -184,8 +181,8 @@ th {
     color: var(--suave);
 }
 tbody tr:last-child td { border-bottom: none; }
-tr.resaltada { background: var(--con-tiempo-fondo); }
-tr.en-mora { background: #FEF7F6; }   /* rojo muy tenue: la etiqueta dice "En mora" */
+tr.resaltada { background: var(--gris-claro); }
+tr.en-mora { background: var(--mora-fondo); }   /* fondo rojo claro: la etiqueta dice "Mora" */
 
 /* ---------- Formularios y botones ---------- */
 .formulario {
@@ -212,7 +209,7 @@ input, select, textarea {
     max-width: 100%;
 }
 input:focus, select:focus, textarea:focus, button:focus-visible, .boton:focus-visible, a:focus-visible {
-    outline: 2px solid var(--tinta);
+    outline: 2px solid var(--texto);
     outline-offset: 1px;
 }
 
@@ -221,19 +218,19 @@ button, .boton {
     font: inherit;
     font-weight: 500;
     padding: 8px 16px;
-    border: 1px solid var(--tinta);
+    border: 1px solid var(--texto);
     border-radius: 6px;
-    background: var(--tinta);
+    background: var(--texto);
     color: #fff;
     text-decoration: none;
     cursor: pointer;
 }
-button:hover, .boton:hover { background: #0B3B35; border-color: #0B3B35; }
-.boton.secundario, button.secundario { background: var(--superficie); color: var(--tinta); }
-.boton.secundario:hover, button.secundario:hover { background: var(--fondo); }
+button:hover, .boton:hover { background: #333333; border-color: #333333; }
+.boton.secundario, button.secundario { background: var(--superficie); color: var(--texto); border-color: var(--texto); }
+.boton.secundario:hover, button.secundario:hover { background: var(--gris-claro); }
 /* Acciones que no se pueden repetir sin pensar (deshacer un pago, cancelar el préstamo). */
-button.peligro { background: var(--superficie); color: var(--mora-texto); border-color: var(--mora-texto); }
-button.peligro:hover { background: var(--mora-fondo); }
+button.peligro { background: var(--superficie); color: var(--texto); border: 2px solid var(--texto); }
+button.peligro:hover { background: var(--gris-claro); border-color: var(--texto); }
 .acciones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 section form + form { margin-top: 0; }
 section > form.no-imprimir { margin-top: 12px; }
@@ -247,13 +244,13 @@ form.cancelar-todo { margin-top: 12px; padding-top: 12px; border-top: 1px dashed
 
 /* ---------- Mensajes después de una acción ---------- */
 .aviso { padding: 10px 14px; border-radius: 6px; margin: 0 0 16px; }
-.aviso.exito { background: var(--pagada-fondo); color: var(--pagada-texto); }
-.aviso.error { background: var(--mora-fondo); color: var(--mora-texto); }
+.aviso.exito { background: var(--gris-claro); color: var(--texto); }
+.aviso.error { background: var(--superficie); color: var(--texto); border: 2px solid var(--texto); }
 
 /* ---------- Login: una tarjeta centrada en la pantalla ---------- */
 .pagina-entrar main { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
 .entrar { width: 100%; max-width: 400px; padding: 28px 24px 24px; margin: 0; }
-.entrar .marca-grande { margin: 0; text-align: center; font-size: 40px; color: var(--tinta); }
+.entrar .marca-grande { margin: 0; text-align: center; font-size: 40px; color: var(--texto); }
 .entrar .subtitulo { margin: 6px 0 20px; text-align: center; color: var(--suave); }
 .entrar .fecha-entrar { margin: 16px 0 0; text-align: center; }
 button.bloque { width: 100%; padding: 10px 16px; }
@@ -266,16 +263,29 @@ main.angosta { max-width: 680px; }
 .datos.montos { grid-template-columns: 1fr auto; }
 .datos.montos dd { margin-bottom: 0; }
 
-/* ---------- Barra de progreso del portal del cliente ---------- */
+/* ---------- Barra de progreso del portal del cliente: negro sobre gris claro ---------- */
 .progreso { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
-.progreso progress { flex: 1; max-width: 360px; height: 14px; accent-color: var(--tinta); }
+.progreso progress {
+    flex: 1;
+    max-width: 360px;
+    height: 14px;
+    appearance: none;            /* sin esto el navegador usa su propio color */
+    border: none;
+    border-radius: 7px;
+    background: var(--gris-claro);
+    overflow: hidden;
+}
+/* Cada navegador pinta la barra con su propio pseudoelemento. */
+.progreso progress::-webkit-progress-bar { background: var(--gris-claro); }
+.progreso progress::-webkit-progress-value { background: var(--texto); }
+.progreso progress::-moz-progress-bar { background: var(--texto); }
 
 /* ---------- Recibo: formato de comprobante ---------- */
 .recibo {
     max-width: 480px;
     margin: 8px auto 16px;
     padding: 20px 20px 16px;
-    border-top: 4px solid var(--tinta);
+    border-top: 4px solid var(--texto);
 }
 .recibo-cabeza {
     display: flex;
@@ -286,7 +296,7 @@ main.angosta { max-width: 680px; }
     padding-bottom: 12px;
     border-bottom: 1px dashed var(--borde);
 }
-.recibo-marca { margin: 0; font-family: var(--letra-titulos); font-weight: 600; font-size: 24px; color: var(--tinta); line-height: 1.1; }
+.recibo-marca { margin: 0; font-family: var(--letra-titulos); font-weight: 600; font-size: 24px; color: var(--texto); line-height: 1.1; }
 .recibo-sub { margin: 0; font-size: 13px; color: var(--suave); }
 .recibo h1 { margin: 0; padding: 0; border: none; font-size: 20px; }
 .recibo-valor { margin: 16px 0; padding: 12px 0; text-align: center; border-top: 1px dashed var(--borde); border-bottom: 1px dashed var(--borde); }
