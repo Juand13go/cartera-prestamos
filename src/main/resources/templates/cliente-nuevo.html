@@ -10,14 +10,26 @@
 
     <section>
         <form class="formulario" th:action="@{/clientes}" th:object="${formulario}" method="post">
-            <label>Cédula <input type="text" th:field="*{cedula}" inputmode="numeric" required></label>
-            <label>Nombre completo <input type="text" th:field="*{nombre}" required></label>
-            <label>Celular (10 dígitos) <input type="text" th:field="*{telefono}" inputmode="numeric" required></label>
-            <label>Dirección <input type="text" th:field="*{direccion}"></label>
-            <label>Referencia <input type="text" th:field="*{referencia}" placeholder="Quién da referencias del cliente"></label>
-            <label>Cupo máximo (pesos) <input type="number" th:field="*{cupoMaximo}" min="0" step="1" required></label>
-            <label class="ancho">Notas internas (solo las ve el prestamista) <textarea th:field="*{notas}" rows="3"></textarea></label>
-            <label>PIN para entrar (4 dígitos) <input type="password" th:field="*{pin}" inputmode="numeric" maxlength="4" required></label>
+            <label><span>Cédula</span>
+                <input type="text" th:field="*{cedula}" inputmode="numeric" required></label>
+            <label><span>Nombre completo</span>
+                <input type="text" th:field="*{nombre}" required></label>
+            <label><span>Celular</span>
+                <input type="text" th:field="*{telefono}" inputmode="numeric" required>
+                <small class="ayuda">10 dígitos</small></label>
+            <label><span>Dirección</span>
+                <input type="text" th:field="*{direccion}"></label>
+            <label><span>Referencia</span>
+                <input type="text" th:field="*{referencia}" placeholder="Quién da referencias del cliente"></label>
+            <label><span>Cupo máximo</span>
+                <input type="number" th:field="*{cupoMaximo}" min="0" step="1" required>
+                <small class="ayuda">En pesos</small></label>
+            <label class="ancho"><span>Notas internas</span>
+                <textarea th:field="*{notas}" rows="3"></textarea>
+                <small class="ayuda">Solo las ve el prestamista</small></label>
+            <label><span>PIN para entrar</span>
+                <input type="password" th:field="*{pin}" inputmode="numeric" maxlength="4" required>
+                <small class="ayuda">4 dígitos</small></label>
             <div class="acciones ancho">
                 <button type="submit">Guardar cliente</button>
                 <a class="boton secundario" th:href="@{/clientes}">Cancelar</a>

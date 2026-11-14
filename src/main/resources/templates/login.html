@@ -11,9 +11,9 @@
         <div th:replace="~{fragmentos :: mensajes}"></div>
         <p class="nota">Clientes: su cédula y su PIN. Prestamista: su usuario y su contraseña.</p>
         <form class="formulario" th:action="@{/login}" method="post">
-            <label class="ancho">Cédula o usuario
+            <label class="ancho"><span>Cédula o usuario</span>
                 <input type="text" name="identificador" th:value="${identificadorEscrito}" autocomplete="username" required autofocus></label>
-            <label class="ancho">Contraseña
+            <label class="ancho"><span>Contraseña</span>
                 <input type="password" name="clave" autocomplete="current-password" required></label>
             <div class="ancho"><button type="submit" class="bloque">Entrar</button></div>
         </form>

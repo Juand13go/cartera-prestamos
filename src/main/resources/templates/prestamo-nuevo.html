@@ -24,10 +24,12 @@
             <fieldset>
                 <legend>Dinero</legend>
                 <div class="formulario">
-                    <label>Capital (mínimo <span th:text="'$' + ${#numbers.formatInteger(montoMinimo, 1, 'POINT')}">$50.000</span>)
-                        <input type="number" th:field="*{capital}" min="1" step="1" required></label>
-                    <label>Tasa por periodo (%) <input type="number" th:field="*{tasa}" min="0.01" step="0.01" required></label>
-                    <label>Base del interés
+                    <label><span>Capital</span>
+                        <input type="number" th:field="*{capital}" min="1" step="1" required>
+                        <small class="ayuda" th:text="'Mínimo $' + ${#numbers.formatInteger(montoMinimo, 1, 'POINT')}">Mínimo $50.000</small></label>
+                    <label><span>Tasa por periodo (%)</span>
+                        <input type="number" th:field="*{tasa}" min="0.01" step="0.01" required></label>
+                    <label><span>Base del interés</span>
                         <select th:field="*{baseInteres}">
                             <option value="CAPITAL_INICIAL">Capital inicial (el interés nunca baja)</option>
                             <option value="CAPITAL_VIGENTE">Capital vigente (baja si abona a capital)</option>
@@ -38,15 +40,18 @@
             <fieldset>
                 <legend>Fechas de cobro</legend>
                 <div class="formulario">
-                    <label>Fecha del desembolso <input type="date" th:field="*{fechaDesembolso}" required></label>
-                    <label>Frecuencia
+                    <label><span>Fecha del desembolso</span>
+                        <input type="date" th:field="*{fechaDesembolso}" required></label>
+                    <label><span>Frecuencia</span>
                         <select th:field="*{frecuencia}">
                             <option value="MENSUAL">Mensual</option>
                             <option value="QUINCENAL">Quincenal (día 15 y último día del mes)</option>
                             <option value="SEMANAL">Semanal</option>
                         </select></label>
-                    <label>Día del mes (si es mensual) <input type="number" th:field="*{diaMes}" min="1" max="31"></label>
-                    <label>Día de la semana (si es semanal)
+                    <label><span>Día del mes</span>
+                        <input type="number" th:field="*{diaMes}" min="1" max="31">
+                        <small class="ayuda">Si es mensual</small></label>
+                    <label><span>Día de la semana</span>
                         <select th:field="*{diaSemana}">
                             <option value="MONDAY">Lunes</option>
                             <option value="TUESDAY">Martes</option>
@@ -55,8 +60,9 @@
                             <option value="FRIDAY">Viernes</option>
                             <option value="SATURDAY">Sábado</option>
                             <option value="SUNDAY">Domingo</option>
-                        </select></label>
-                    <label>Calendario
+                        </select>
+                        <small class="ayuda">Si es semanal</small></label>
+                    <label><span>Calendario</span>
                         <select th:field="*{calendario}">
                             <option value="TODOS_LOS_DIAS">Todos los días cuentan</option>
                             <option value="SIN_DOMINGOS">Sin domingos (pasa al lunes)</option>
@@ -67,32 +73,36 @@
             <fieldset>
                 <legend>Mora</legend>
                 <div class="formulario">
-                    <label>Política de mora
+                    <label><span>Política de mora</span>
                         <select th:field="*{politicaMora}">
                             <option value="SIN_MULTA">Sin multa</option>
                             <option value="MULTA_FIJA_DIARIA">Multa fija diaria (pesos)</option>
                             <option value="PORCENTAJE_UNICO">Porcentaje único sobre la cuota</option>
                             <option value="PORCENTAJE_DIARIO">Porcentaje diario sobre la cuota</option>
                         </select></label>
-                    <label>Valor de la multa (pesos o %) <input type="number" th:field="*{valorMora}" min="0" step="0.01"></label>
-                    <label>Días de gracia <input type="number" th:field="*{diasGracia}" min="0" step="1" required></label>
+                    <label><span>Valor de la multa</span>
+                        <input type="number" th:field="*{valorMora}" min="0" step="0.01">
+                        <small class="ayuda">En pesos o %, según la política</small></label>
+                    <label><span>Días de gracia</span>
+                        <input type="number" th:field="*{diasGracia}" min="0" step="1" required></label>
                 </div>
             </fieldset>
 
             <fieldset>
                 <legend>Pagos y cierre</legend>
                 <div class="formulario">
-                    <label>Orden de imputación
+                    <label><span>Orden de imputación</span>
                         <select th:field="*{ordenImputacion}">
                             <option value="MULTAS_PRIMERO">Multas primero, luego cuotas, luego capital</option>
                             <option value="CUOTAS_PRIMERO">Cuotas primero, luego multas, luego capital</option>
                         </select></label>
-                    <label>Al vencer el plazo (24 meses) sin pagar
+                    <label><span>Al vencer el plazo sin pagar</span>
                         <select th:field="*{alVencerPlazo}">
                             <option value="TRATAR_COMO_MORA">Tratar como mora</option>
                             <option value="SEGUIR_COBRANDO">Seguir cobrando interés</option>
-                        </select></label>
-                    <label>Interés si cancela antes
+                        </select>
+                        <small class="ayuda">Plazo máximo: 24 meses</small></label>
+                    <label><span>Interés si cancela antes</span>
                         <select th:field="*{interesCancelacion}">
                             <option value="PERIODO_COMPLETO">Periodo completo</option>
                             <option value="POR_DIAS">Por días corridos</option>
@@ -102,7 +112,7 @@
 
             <label class="ancho casilla" th:if="${cupo}">
                 <input type="checkbox" th:field="*{confirmaSobreCupo}">
-                Confirmo que quiero prestar por encima del cupo del cliente.
+                <span>Confirmo que quiero prestar por encima del cupo del cliente.</span>
             </label>
 
             <div class="acciones ancho">
