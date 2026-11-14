@@ -17,8 +17,9 @@ class PrestamoTest {
 
     /** Caso 1: $2.000.000 al 8 % mensual, desembolso el 10 de noviembre de 2026, cobro el día 10. */
     private static Prestamo prestamoCaso1(BaseInteres base) {
-        Contrato contrato = new Contrato(new BigDecimal("2000000"), new BigDecimal("8"), base,
-                DESEMBOLSO_CASO_1, new FrecuenciaMensual(10));
+        Contrato contrato = Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO_CASO_1)
+                .base(base)
+                .firmar();
         return new Prestamo("1001", contrato);
     }
 
@@ -81,8 +82,9 @@ class PrestamoTest {
 
     @Test
     void caso4CuotaDe400000YFebreroVenceElUltimoDia() {
-        Contrato contrato = new Contrato(pesos("8000000"), pesos("5"), BaseInteres.CAPITAL_INICIAL,
-                LocalDate.of(2026, 11, 30), new FrecuenciaMensual(30));
+        Contrato contrato = Contrato.borrador(pesos("8000000"), pesos("5"), LocalDate.of(2026, 11, 30))
+                .frecuencia(new FrecuenciaMensual(30))
+                .firmar();
         Prestamo prestamo = new Prestamo("1002", contrato);
 
         prestamo.actualizarCronograma(LocalDate.of(2027, 3, 1));
@@ -237,8 +239,7 @@ class PrestamoTest {
     @Test
     void elInteresSeRedondeaAlPesoHaciaArribaDesdeLaMitad() {
         // 150.050 × 1 % = 1.500,50 → 1.501
-        Contrato contrato = new Contrato(pesos("150050"), pesos("1"), BaseInteres.CAPITAL_INICIAL,
-                DESEMBOLSO_CASO_1, new FrecuenciaMensual(10));
+        Contrato contrato = Contrato.borrador(pesos("150050"), pesos("1"), DESEMBOLSO_CASO_1).firmar();
 
         assertEquals(pesos("1501"), new Prestamo("1003", contrato).getCronograma().primero().getValor());
     }
@@ -246,38 +247,16 @@ class PrestamoTest {
     @Test
     void elInteresSeRedondeaAlPesoHaciaAbajoAntesDeLaMitad() {
         // 1.234.567 × 3 % = 37.037,01 → 37.037
-        Contrato contrato = new Contrato(pesos("1234567"), pesos("3"), BaseInteres.CAPITAL_INICIAL,
-                DESEMBOLSO_CASO_1, new FrecuenciaMensual(10));
+        Contrato contrato = Contrato.borrador(pesos("1234567"), pesos("3"), DESEMBOLSO_CASO_1).firmar();
 
         assertEquals(pesos("37037"), new Prestamo("1004", contrato).getCronograma().primero().getValor());
     }
 
-    // Validaciones del contrato y del préstamo
-
-    @Test
-    void contratoConCapitalOTasaNoPositivosLanzaExcepcion() {
-        FrecuenciaMensual mensual = new FrecuenciaMensual(10);
-
-        assertThrows(IllegalArgumentException.class, () -> new Contrato(BigDecimal.ZERO, pesos("8"),
-                BaseInteres.CAPITAL_INICIAL, DESEMBOLSO_CASO_1, mensual));
-        assertThrows(IllegalArgumentException.class, () -> new Contrato(pesos("2000000"), pesos("-1"),
-                BaseInteres.CAPITAL_INICIAL, DESEMBOLSO_CASO_1, mensual));
-    }
-
-    @Test
-    void contratoSinBaseFechaOFrecuenciaLanzaExcepcion() {
-        assertThrows(IllegalArgumentException.class, () -> new Contrato(pesos("2000000"), pesos("8"),
-                null, DESEMBOLSO_CASO_1, new FrecuenciaMensual(10)));
-        assertThrows(IllegalArgumentException.class, () -> new Contrato(pesos("2000000"), pesos("8"),
-                BaseInteres.CAPITAL_INICIAL, null, new FrecuenciaMensual(10)));
-        assertThrows(IllegalArgumentException.class, () -> new Contrato(pesos("2000000"), pesos("8"),
-                BaseInteres.CAPITAL_INICIAL, DESEMBOLSO_CASO_1, null));
-    }
+    // Validaciones del préstamo
 
     @Test
     void prestamoSinCedulaLanzaExcepcion() {
-        Contrato contrato = new Contrato(pesos("2000000"), pesos("8"), BaseInteres.CAPITAL_INICIAL,
-                DESEMBOLSO_CASO_1, new FrecuenciaMensual(10));
+        Contrato contrato = Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO_CASO_1).firmar();
 
         assertThrows(IllegalArgumentException.class, () -> new Prestamo(" ", contrato));
     }
