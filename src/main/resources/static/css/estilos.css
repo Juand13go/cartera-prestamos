@@ -270,11 +270,42 @@ main.angosta { max-width: 680px; }
 .progreso { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
 .progreso progress { flex: 1; max-width: 360px; height: 14px; accent-color: var(--tinta); }
 
-/* ---------- Recibo ---------- */
-.recibo { max-width: 520px; margin: 0 auto 16px; padding-top: 12px; }
-.recibo h1 { font-size: 22px; }
-.valor-recibo { font-size: 20px; margin: 16px 0 8px; }
-main > .acciones { justify-content: center; }
+/* ---------- Recibo: formato de comprobante ---------- */
+.recibo {
+    max-width: 480px;
+    margin: 8px auto 16px;
+    padding: 20px 20px 16px;
+    border-top: 4px solid var(--tinta);
+}
+.recibo-cabeza {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 8px 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed var(--borde);
+}
+.recibo-marca { margin: 0; font-family: var(--letra-titulos); font-weight: 600; font-size: 24px; color: var(--tinta); line-height: 1.1; }
+.recibo-sub { margin: 0; font-size: 13px; color: var(--suave); }
+.recibo h1 { margin: 0; padding: 0; border: none; font-size: 20px; }
+.recibo-valor { margin: 16px 0; padding: 12px 0; text-align: center; border-top: 1px dashed var(--borde); border-bottom: 1px dashed var(--borde); }
+.recibo-valor .rotulo { margin: 0; font-size: 13px; font-weight: 500; color: var(--suave); }
+.recibo-valor .cifra {
+    margin: 0 0 4px;
+    font-family: var(--letra-titulos);
+    font-weight: 600;
+    font-size: 36px;
+    font-variant-numeric: tabular-nums;
+}
+/* Líneas del desglose: concepto, puntos y valor a la derecha. */
+.desglose { list-style: none; margin: 0; padding: 0; }
+.desglose li { display: flex; align-items: baseline; gap: 8px; padding: 4px 0; }
+.desglose li > :first-child { flex: 1; display: flex; gap: 8px; }
+.desglose li > :first-child::after { content: ""; flex: 1; border-bottom: 1px dotted var(--suave); transform: translateY(-4px); }
+.recibo-pie { margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--borde); }
+.recibo-pie .saldo { font-size: 18px; }
+.botones-recibo { justify-content: center; }
 
 /* ---------- Celular (desde 360 px) ---------- */
 @media (max-width: 600px) {
@@ -289,9 +320,14 @@ main > .acciones { justify-content: center; }
     .datos.montos { grid-template-columns: 1fr auto; gap: 6px 12px; }
 }
 
-/* ---------- Impresión (recibos): sin barra ni botones ---------- */
+/* ---------- Impresión (recibos): solo la hoja, sin barra ni botones ---------- */
 @media print {
+    @page { margin: 12mm; }
     .menu, .no-imprimir, form { display: none !important; }
-    body { background: #fff; }
+    body { background: #fff; color: #000; }
+    main { padding: 0; }
     section { border: none; }
+    .recibo { max-width: 120mm; margin: 0 auto; padding: 8px 0; border-top: 3px solid #000; }
+    .recibo-marca, .recibo-valor .cifra { color: #000; }
+    .etiqueta { border: 1px solid #000; background: none; color: #000; }
 }

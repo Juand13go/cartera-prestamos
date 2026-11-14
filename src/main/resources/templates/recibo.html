@@ -7,8 +7,16 @@
 <main>
     <div class="no-imprimir" th:insert="~{fragmentos :: mensajes}"></div>
 
+    <!-- Formato de comprobante. Al imprimir solo sale esta hoja (sin barra superior ni botones). -->
     <section class="recibo">
-        <h1>Recibo N° <span th:text="${recibo.numero}">123</span></h1>
+        <div class="recibo-cabeza">
+            <div>
+                <p class="recibo-marca">Libreta</p>
+                <p class="recibo-sub">cartera de préstamos</p>
+            </div>
+            <h1>Recibo N° <span th:text="${recibo.numero}">123</span></h1>
+        </div>
+
         <dl class="datos">
             <dt>Fecha y hora</dt><dd th:text="${#temporals.format(recibo.fechaHora, 'dd/MM/yyyy HH:mm')}">10/12/2026 09:30</dd>
             <dt>Cliente</dt><dd th:text="${recibo.cliente.nombre} + ' (C.C. ' + ${recibo.cliente.cedula} + ')'">Laura</dd>
@@ -16,24 +24,26 @@
             <dt>Fecha del pago</dt><dd th:text="${#temporals.format(recibo.pago.fecha, 'dd/MM/yyyy')}">10/12/2026</dd>
         </dl>
 
-        <p class="valor-recibo">Valor pagado: <strong th:text="${@textos.pesos(recibo.valor)}">$160.000</strong>
-            <span th:if="${recibo.pago.cancelacion}" class="etiqueta">cancelación total</span></p>
+        <div class="recibo-valor">
+            <p class="rotulo">Valor pagado</p>
+            <p class="cifra" th:text="${@textos.pesos(recibo.valor)}">$160.000</p>
+            <span th:if="${recibo.pago.cancelacion}" class="etiqueta estado-PAGADA">cancelación total</span>
+        </div>
 
-        <table>
-            <tbody>
-            <tr><td>A multas</td><td class="numero" th:text="${@textos.pesos(recibo.pago.abonoAMultas)}">$0</td></tr>
-            <tr><td>A cuotas</td><td class="numero" th:text="${@textos.pesos(recibo.pago.abonoACuotas)}">$160.000</td></tr>
-            <tr><td>A capital</td><td class="numero" th:text="${@textos.pesos(recibo.pago.abonoACapital)}">$0</td></tr>
-            </tbody>
-        </table>
+        <!-- Cómo se repartió el pago: cada línea con puntos hasta el valor, como en un comprobante. -->
+        <ul class="desglose">
+            <li><span>A multas</span><span class="numero" th:text="${@textos.pesos(recibo.pago.abonoAMultas)}">$0</span></li>
+            <li><span>A cuotas</span><span class="numero" th:text="${@textos.pesos(recibo.pago.abonoACuotas)}">$160.000</span></li>
+            <li><span>A capital</span><span class="numero" th:text="${@textos.pesos(recibo.pago.abonoACapital)}">$0</span></li>
+        </ul>
 
-        <dl class="datos">
-            <dt>Cuotas cubiertas</dt><dd th:text="${@textos.cuotas(recibo.cuotasCubiertas)}">1</dd>
-            <dt>Saldo restante</dt><dd><strong th:text="${@textos.pesos(recibo.saldoRestante)}">$2.000.000</strong></dd>
-        </dl>
+        <ul class="desglose recibo-pie">
+            <li><span>Cuotas cubiertas</span><span th:text="${@textos.cuotas(recibo.cuotasCubiertas)}">1</span></li>
+            <li class="saldo"><span>Saldo restante</span><strong class="numero" th:text="${@textos.pesos(recibo.saldoRestante)}">$2.000.000</strong></li>
+        </ul>
     </section>
 
-    <div class="acciones no-imprimir">
+    <div class="acciones no-imprimir botones-recibo">
         <button type="button" onclick="window.print()">Imprimir</button>
         <a class="boton" th:if="${enlaceWhatsapp != null}" th:href="${enlaceWhatsapp}" target="_blank" rel="noopener">Enviar por WhatsApp</a>
         <a class="boton secundario" th:href="@{${volverA}}">Volver al préstamo</a>
