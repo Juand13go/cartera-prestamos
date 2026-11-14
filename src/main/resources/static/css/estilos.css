@@ -130,3 +130,5 @@ button.peligro { background: var(--mora); border-color: var(--mora); }
 .datos dd { margin: 0; }
 .etiqueta.activo { background: var(--exito); color: var(--exito-texto); }
 .formulario label.casilla { flex-direction: row; align-items: center; gap: 8px; color: var(--texto); }
+section form + form { margin-top: 0; }
+section > form.no-imprimir { margin-top: 12px; }

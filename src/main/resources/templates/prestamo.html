@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabeza('Préstamo #' + ${prestamo.id})}"></head>
+<body>
+<header th:replace="~{fragmentos :: menu}"></header>
+
+<main>
+    <h1>
+        Préstamo <span th:text="'#' + ${prestamo.id}">#1</span> de
+        <a th:href="@{/clientes/{c}(c=${cliente.cedula})}" th:text="${cliente.nombre}">Laura</a>
+        <span th:if="${prestamo.estaCerrado()}" class="etiqueta">cerrado</span>
+    </h1>
+    <div th:replace="~{fragmentos :: mensajes}"></div>
+
+    <section>
+        <h2>Resumen</h2>
+        <dl class="datos">
+            <dt>Capital prestado</dt><dd th:text="${@textos.pesos(prestamo.contrato.capital)}">$2.000.000</dd>
+            <dt>Capital que debe</dt><dd th:text="${@textos.pesos(prestamo.capitalAdeudado())}">$2.000.000</dd>
+            <dt>Saldo total hoy</dt><dd th:text="${@textos.pesos(prestamo.saldoTotal(hoy))}">$2.160.000</dd>
+            <dt>Para cancelar todo hoy</dt><dd><strong th:text="${@textos.pesos(valorParaCancelar)}">$2.160.000</strong></dd>
+        </dl>
+    </section>
+
+    <section class="no-imprimir" th:unless="${prestamo.estaCerrado()}">
+        <h2>Acciones</h2>
+        <div class="acciones">
+            <form class="en-linea" th:action="@{/prestamos/{id}/pagos(id=${prestamo.id})}" method="post">
+                <input type="number" name="monto" min="1" step="1" placeholder="Monto en pesos" required>
+                <button type="submit">Registrar pago</button>
+            </form>
+            <form th:action="@{/prestamos/{id}/cancelar(id=${prestamo.id})}" method="post"
+                  onsubmit="return confirm('¿Registrar el pago total y cerrar el préstamo?');">
+                <button type="submit" class="secundario"
+                        th:text="'Cancelar todo (' + ${@textos.pesos(valorParaCancelar)} + ')'">Cancelar todo</button>
+            </form>
+        </div>
+    </section>
+
+    <section>
+        <h2>Contrato</h2>
+        <dl class="datos">
+            <dt>Desembolso</dt><dd th:text="${#temporals.format(prestamo.contrato.fechaDesembolso, 'dd/MM/yyyy')}">10/11/2026</dd>
+            <dt>Tasa por periodo</dt><dd th:text="${prestamo.contrato.tasaPorPeriodo.stripTrailingZeros().toPlainString()} + ' %'">8 %</dd>
+            <dt>Base del interés</dt>
+            <dd th:text="${prestamo.contrato.baseInteres.name() == 'CAPITAL_INICIAL'} ? 'Capital inicial' : 'Capital vigente'">Capital inicial</dd>
+            <dt>Frecuencia</dt><dd th:text="${@textos.frecuencia(prestamo.contrato.frecuencia)}">Mensual, el día 10</dd>
+            <dt>Calendario</dt>
+            <dd th:text="${prestamo.contrato.calendario.name() == 'SIN_DOMINGOS'} ? 'Sin domingos' : 'Todos los días'">Todos los días</dd>
+            <dt>Mora</dt>
+            <dd th:text="${@textos.mora(prestamo.contrato.politicaMora)} + ', ' + ${prestamo.contrato.diasDeGracia} + ' días de gracia'">Sin multa</dd>
+            <dt>Orden de imputación</dt>
+            <dd th:text="${prestamo.contrato.ordenImputacion.name() == 'MULTAS_PRIMERO'} ? 'Multas primero' : 'Cuotas primero'">Multas primero</dd>
+            <dt>Al vencer el plazo</dt>
+            <dd th:text="${prestamo.contrato.alVencerPlazo.name() == 'TRATAR_COMO_MORA'} ? 'Tratar como mora' : 'Seguir cobrando'">Tratar como mora</dd>
+            <dt>Interés al cancelar antes</dt>
+            <dd th:text="${prestamo.contrato.interesCancelacion.name() == 'POR_DIAS'} ? 'Por días corridos' : 'Periodo completo'">Periodo completo</dd>
+        </dl>
+    </section>
+
+    <section>
+        <h2>Cronograma</h2>
+        <p class="nota">Crece una cuota a la vez: la siguiente aparece el día después de que vence la anterior.</p>
+        <div class="tabla">
+            <table>
+                <thead>
+                <tr><th>#</th><th>Vence</th><th class="numero">Valor</th><th class="numero">Pagado</th>
+                    <th class="numero">Falta</th><th>Estado</th><th class="numero">Multa pendiente</th><th></th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="cuota : ${prestamo.cronograma}" th:with="multa=${prestamo.saldoMulta(cuota, hoy)}, estado=${cuota.estado(hoy)}">
+                    <td th:text="${cuota.numero}">1</td>
+                    <td th:text="${#temporals.format(cuota.fechaVencimiento, 'dd/MM/yyyy')}">10/12/2026</td>
+                    <td class="numero" th:text="${@textos.pesos(cuota.valor)}">$160.000</td>
+                    <td class="numero" th:text="${@textos.pesos(cuota.valorCubierto)}">$0</td>
+                    <td class="numero" th:text="${@textos.pesos(cuota.saldoPendiente())}">$160.000</td>
+                    <td><span class="etiqueta" th:classappend="${estado.name() == 'MORA'} ? 'mora' : (${cuota.estaCubierta()} ? 'activo')"
+                              th:text="${@textos.estado(estado)}">Con tiempo</span></td>
+                    <td class="numero">
+                        <span th:text="${@textos.pesos(multa)}">$0</span>
+                        <span th:if="${cuota.estaMultaCondonada()}" class="etiqueta">condonada</span>
+                    </td>
+                    <td>
+                        <form th:if="${multa.signum() > 0}" class="no-imprimir"
+                              th:action="@{/prestamos/{id}/cuotas/{n}/condonar(id=${prestamo.id}, n=${cuota.numero})}" method="post"
+                              onsubmit="return confirm('¿Condonar lo que falta de la multa de esta cuota?');">
+                            <button type="submit" class="secundario">Condonar</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section>
+        <h2>Pagos</h2>
+        <p th:if="${prestamo.pagos.estaVacia()}" class="vacio">Todavía no hay pagos.</p>
+        <div th:unless="${prestamo.pagos.estaVacia()}">
+            <p class="nota">Del más reciente al más antiguo (así los entrega la pila).</p>
+            <div class="tabla">
+                <table>
+                    <thead>
+                    <tr><th>#</th><th>Fecha</th><th class="numero">Monto</th><th class="numero">A multas</th>
+                        <th class="numero">A cuotas</th><th class="numero">A capital</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                    <!-- La pila entrega primero el pago más reciente: su número es el tamaño de la pila. -->
+                    <tr th:each="pago, vuelta : ${prestamo.pagos}" th:with="numero=${prestamo.pagos.tamano() - vuelta.index}">
+                        <td th:text="${numero}">2</td>
+                        <td>
+                            <span th:text="${#temporals.format(pago.fecha, 'dd/MM/yyyy')}">10/01/2027</span>
+                            <span th:if="${pago.cancelacion}" class="etiqueta">cancelación</span>
+                        </td>
+                        <td class="numero" th:text="${@textos.pesos(pago.monto)}">$660.000</td>
+                        <td class="numero" th:text="${@textos.pesos(pago.abonoAMultas)}">$0</td>
+                        <td class="numero" th:text="${@textos.pesos(pago.abonoACuotas)}">$160.000</td>
+                        <td class="numero" th:text="${@textos.pesos(pago.abonoACapital)}">$500.000</td>
+                        <td><a th:href="@{/prestamos/{id}/recibos/{n}(id=${prestamo.id}, n=${numero})}">Recibo</a></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <form class="no-imprimir" th:action="@{/prestamos/{id}/deshacer(id=${prestamo.id})}" method="post"
+                  onsubmit="return confirm('¿Deshacer el último pago? Se recalcula todo el préstamo sin él.');">
+                <button type="submit" class="peligro">Deshacer el último pago</button>
+            </form>
+        </div>
+    </section>
+</main>
+</body>
+</html>
