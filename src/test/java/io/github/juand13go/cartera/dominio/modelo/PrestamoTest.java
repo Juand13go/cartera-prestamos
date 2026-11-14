@@ -9,6 +9,7 @@ import java.time.LocalDate;
 
 import org.junit.jupiter.api.Test;
 
+import io.github.juand13go.cartera.dominio.politicas.Calendario;
 import io.github.juand13go.cartera.dominio.politicas.FrecuenciaMensual;
 
 class PrestamoTest {
@@ -93,6 +94,31 @@ class PrestamoTest {
         assertEquals(pesos("400000"), prestamo.getCronograma().primero().getValor());
         assertEquals(LocalDate.of(2027, 2, 28), prestamo.getCronograma().obtener(2).getFechaVencimiento());
         assertEquals(LocalDate.of(2027, 3, 30), prestamo.getCronograma().ultimo().getFechaVencimiento());
+    }
+
+    // Calendario
+
+    @Test
+    void sinDomingosLaCuotaQueCaeDomingoPasaAlLunesYLaSiguienteVuelveAlDia10() {
+        // El 10 de enero de 2027 es domingo.
+        Contrato contrato = Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO_CASO_1)
+                .calendario(Calendario.SIN_DOMINGOS)
+                .firmar();
+        Prestamo prestamo = new Prestamo("1005", contrato);
+
+        prestamo.actualizarCronograma(LocalDate.of(2027, 1, 12));
+
+        assertEquals(LocalDate.of(2027, 1, 11), prestamo.getCronograma().obtener(1).getFechaVencimiento());
+        assertEquals(LocalDate.of(2027, 2, 10), prestamo.getCronograma().obtener(2).getFechaVencimiento());
+    }
+
+    @Test
+    void conTodosLosDiasLaCuotaPuedeVencerEnDomingo() {
+        Prestamo prestamo = prestamoCaso1(BaseInteres.CAPITAL_INICIAL);
+
+        prestamo.actualizarCronograma(LocalDate.of(2026, 12, 11));
+
+        assertEquals(LocalDate.of(2027, 1, 10), prestamo.getCronograma().obtener(1).getFechaVencimiento());
     }
 
     // Caso 2

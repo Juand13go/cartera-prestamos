@@ -3,6 +3,7 @@ package io.github.juand13go.cartera.dominio.modelo;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import io.github.juand13go.cartera.dominio.politicas.Calendario;
 import io.github.juand13go.cartera.dominio.politicas.Frecuencia;
 import io.github.juand13go.cartera.dominio.politicas.FrecuenciaMensual;
 
@@ -24,6 +25,7 @@ public class Contrato {
     private final BaseInteres baseInteres;
     private final LocalDate fechaDesembolso;
     private final Frecuencia frecuencia;
+    private final Calendario calendario;
 
     /**
      * Empieza un borrador con lo que no tiene valor por defecto.
@@ -44,7 +46,8 @@ public class Contrato {
         if (borrador.tasaPorPeriodo == null || borrador.tasaPorPeriodo.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("La tasa debe ser mayor que cero");
         }
-        if (borrador.baseInteres == null || borrador.fechaDesembolso == null || borrador.frecuencia == null) {
+        if (borrador.baseInteres == null || borrador.fechaDesembolso == null || borrador.frecuencia == null
+                || borrador.calendario == null) {
             throw new IllegalArgumentException("Faltan condiciones del contrato");
         }
         this.capital = borrador.capital;
@@ -52,6 +55,7 @@ public class Contrato {
         this.baseInteres = borrador.baseInteres;
         this.fechaDesembolso = borrador.fechaDesembolso;
         this.frecuencia = borrador.frecuencia;
+        this.calendario = borrador.calendario;
     }
 
     public BigDecimal getCapital() {
@@ -74,6 +78,15 @@ public class Contrato {
         return frecuencia;
     }
 
+    public Calendario getCalendario() {
+        return calendario;
+    }
+
+    /** Fecha en que vence la cuota número {@code numeroCuota}: la de la frecuencia, ajustada al calendario. */
+    public LocalDate fechaVencimiento(int numeroCuota) {
+        return calendario.ajustar(frecuencia.fechaVencimiento(fechaDesembolso, numeroCuota));
+    }
+
     /**
      * Contrato todavía sin firmar: se puede cambiar cualquier condición.
      * Cada método devuelve el mismo borrador para poder encadenar las llamadas.
@@ -85,6 +98,7 @@ public class Contrato {
         private final LocalDate fechaDesembolso;
         private BaseInteres baseInteres = BaseInteres.CAPITAL_INICIAL;
         private Frecuencia frecuencia;
+        private Calendario calendario = Calendario.TODOS_LOS_DIAS;
 
         private Borrador(BigDecimal capital, BigDecimal tasaPorPeriodo, LocalDate fechaDesembolso) {
             this.capital = capital;
@@ -103,6 +117,11 @@ public class Contrato {
 
         public Borrador frecuencia(Frecuencia frecuencia) {
             this.frecuencia = frecuencia;
+            return this;
+        }
+
+        public Borrador calendario(Calendario calendario) {
+            this.calendario = calendario;
             return this;
         }
 

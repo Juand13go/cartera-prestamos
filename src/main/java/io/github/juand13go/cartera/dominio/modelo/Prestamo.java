@@ -138,7 +138,7 @@ public class Prestamo {
     /** Agrega al final del cronograma la cuota del periodo siguiente. */
     private void agregarSiguienteCuota() {
         int numero = cronograma.tamano() + 1;
-        LocalDate vence = contrato.getFrecuencia().fechaVencimiento(contrato.getFechaDesembolso(), numero);
+        LocalDate vence = contrato.fechaVencimiento(numero);
         cronograma.agregarAlFinal(new Cuota(numero, vence, interesDelPeriodo()));
     }
 

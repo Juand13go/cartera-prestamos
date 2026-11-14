@@ -11,6 +11,7 @@ import java.time.LocalDate;
 
 import org.junit.jupiter.api.Test;
 
+import io.github.juand13go.cartera.dominio.politicas.Calendario;
 import io.github.juand13go.cartera.dominio.politicas.Frecuencia;
 import io.github.juand13go.cartera.dominio.politicas.FrecuenciaMensual;
 import io.github.juand13go.cartera.dominio.politicas.FrecuenciaSemanal;
@@ -31,6 +32,7 @@ class ContratoTest {
         assertEquals(pesos("8"), contrato.getTasaPorPeriodo());
         assertEquals(DESEMBOLSO, contrato.getFechaDesembolso());
         assertEquals(BaseInteres.CAPITAL_INICIAL, contrato.getBaseInteres());
+        assertEquals(Calendario.TODOS_LOS_DIAS, contrato.getCalendario());
     }
 
     @Test
@@ -48,10 +50,12 @@ class ContratoTest {
         Contrato contrato = Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO)
                 .base(BaseInteres.CAPITAL_VIGENTE)
                 .frecuencia(semanal)
+                .calendario(Calendario.SIN_DOMINGOS)
                 .firmar();
 
         assertEquals(BaseInteres.CAPITAL_VIGENTE, contrato.getBaseInteres());
         assertSame(semanal, contrato.getFrecuencia());
+        assertEquals(Calendario.SIN_DOMINGOS, contrato.getCalendario());
     }
 
     @Test
@@ -72,5 +76,7 @@ class ContratoTest {
                 () -> Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO).base(null).firmar());
         assertThrows(IllegalArgumentException.class,
                 () -> Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO).frecuencia(null).firmar());
+        assertThrows(IllegalArgumentException.class,
+                () -> Contrato.borrador(pesos("2000000"), pesos("8"), DESEMBOLSO).calendario(null).firmar());
     }
 }
