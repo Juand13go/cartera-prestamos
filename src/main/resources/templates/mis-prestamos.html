@@ -4,7 +4,8 @@
 <body>
 <header th:replace="~{fragmentos :: menu}"></header>
 
-<main>
+<!-- Pensado primero para celular: una sola columna y lo importante (cuánto y cuándo) arriba. -->
+<main class="angosta">
     <h1>Mis préstamos</h1>
     <div th:replace="~{fragmentos :: mensajes}"></div>
 
@@ -13,24 +14,35 @@
     <section th:each="prestamo : ${prestamos}" th:with="proxima=${prestamo.proximaCuotaPendiente()}">
         <h2>
             <a th:href="@{/mis-prestamos/{id}(id=${prestamo.id})}" th:text="'Préstamo #' + ${prestamo.id}">Préstamo #1</a>
-            <span th:if="${prestamo.estaCerrado()}" class="etiqueta">pagado</span>
+            <span th:if="${prestamo.estaCerrado()}" class="etiqueta estado-PAGADA">pagado</span>
         </h2>
         <p class="nota" th:text="'Desembolsado el ' + ${#temporals.format(prestamo.contrato.fechaDesembolso, 'dd/MM/yyyy')}
                 + ' por ' + ${@textos.pesos(prestamo.contrato.capital)}">Desembolsado el 10/08/2026 por $2.000.000</p>
+
+        <div class="tarjeta-resumen grande" th:if="${proxima != null}"
+             th:classappend="${proxima.estado(hoy).name() == 'MORA'} ? 'alerta'">
+            <p class="rotulo">Próximo pago</p>
+            <p class="cifra" th:text="${@textos.pesos(proxima.saldoPendiente())}">$160.000</p>
+            <p class="detalle">
+                <span th:text="'Próxima fecha de cobro: ' + ${#temporals.format(proxima.fechaVencimiento, 'dd/MM/yyyy')}">Próxima fecha de cobro: 10/12/2026</span>
+                <span class="etiqueta" th:classappend="'estado-' + ${proxima.estado(hoy).name()}"
+                      th:text="${@textos.estado(proxima.estado(hoy))}">Con tiempo</span>
+            </p>
+        </div>
 
         <div class="progreso">
             <progress max="100" th:value="${prestamo.porcentajeDeCapitalPagado()}">0</progress>
             <span th:text="${prestamo.porcentajeDeCapitalPagado()} + ' % del capital pagado'">0 % del capital pagado</span>
         </div>
 
-        <dl class="datos" th:unless="${prestamo.estaCerrado()}">
-            <dt>Próxima fecha de cobro</dt>
-            <dd th:text="${proxima != null} ? ${#temporals.format(proxima.fechaVencimiento, 'dd/MM/yyyy')} + ' (' + ${@textos.pesos(proxima.saldoPendiente())} + ')' : '—'">10/12/2026</dd>
+        <dl class="datos montos" th:unless="${prestamo.estaCerrado()}">
             <dt>Para estar al día hoy</dt>
-            <dd><strong th:text="${@textos.pesos(prestamo.valorParaEstarAlDia(hoy))}">$0</strong></dd>
-            <dt>Capital que debe</dt><dd th:text="${@textos.pesos(prestamo.capitalAdeudado())}">$2.000.000</dd>
-            <dt>Para cancelar todo hoy</dt><dd th:text="${@textos.pesos(prestamo.valorParaCancelar(hoy))}">$2.160.000</dd>
+            <dd class="numero"><strong th:text="${@textos.pesos(prestamo.valorParaEstarAlDia(hoy))}">$0</strong></dd>
+            <dt>Capital que debe</dt><dd class="numero" th:text="${@textos.pesos(prestamo.capitalAdeudado())}">$2.000.000</dd>
+            <dt>Para cancelar todo hoy</dt><dd class="numero" th:text="${@textos.pesos(prestamo.valorParaCancelar(hoy))}">$2.160.000</dd>
         </dl>
+
+        <p class="acciones"><a class="boton secundario" th:href="@{/mis-prestamos/{id}(id=${prestamo.id})}">Ver cuotas y pagos</a></p>
     </section>
 </main>
 </body>

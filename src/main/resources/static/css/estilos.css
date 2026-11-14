@@ -258,6 +258,14 @@ form.cancelar-todo { margin-top: 12px; padding-top: 12px; border-top: 1px dashed
 .entrar .fecha-entrar { margin: 16px 0 0; text-align: center; }
 button.bloque { width: 100%; padding: 10px 16px; }
 
+/* ---------- Portal del cliente: una columna angosta, cómoda en el celular ---------- */
+main.angosta { max-width: 680px; }
+.tarjeta-resumen.grande { margin-bottom: 16px; padding: 18px 20px; }
+.tarjeta-resumen.grande .cifra { font-size: 40px; }
+/* Montos en lista: etiqueta a la izquierda, valor a la derecha, también en el celular. */
+.datos.montos { grid-template-columns: 1fr auto; }
+.datos.montos dd { margin-bottom: 0; }
+
 /* ---------- Barra de progreso del portal del cliente ---------- */
 .progreso { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
 .progreso progress { flex: 1; max-width: 360px; height: 14px; accent-color: var(--tinta); }
@@ -277,6 +285,8 @@ main > .acciones { justify-content: center; }
     .datos { grid-template-columns: 1fr; gap: 0; }
     .datos dd { margin-bottom: 8px; }
     .tarjeta-resumen .cifra { font-size: 26px; }
+    .tarjeta-resumen.grande .cifra { font-size: 34px; }
+    .datos.montos { grid-template-columns: 1fr auto; gap: 6px 12px; }
 }
 
 /* ---------- Impresión (recibos): sin barra ni botones ---------- */

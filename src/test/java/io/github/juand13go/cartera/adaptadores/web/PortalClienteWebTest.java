@@ -54,6 +54,7 @@ class PortalClienteWebTest {
                 .andExpect(content().string(containsString("por $300.000")))
                 .andExpect(content().string(containsString("<progress")))
                 .andExpect(content().string(containsString("Próxima fecha de cobro")))
+                .andExpect(content().string(containsString("Próximo pago")))
                 .andExpect(content().string(containsString("Para estar al día hoy")))
                 .andExpect(content().string(not(containsString("Carlos"))));
     }
