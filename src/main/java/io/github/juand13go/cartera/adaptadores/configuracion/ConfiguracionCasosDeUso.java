@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import io.github.juand13go.cartera.aplicacion.ArmarPanel;
 import io.github.juand13go.cartera.aplicacion.CancelarPrestamo;
 import io.github.juand13go.cartera.aplicacion.CondonarMulta;
 import io.github.juand13go.cartera.aplicacion.ConsultarPrestamos;
@@ -67,5 +68,10 @@ public class ConfiguracionCasosDeUso {
     @Bean
     public CancelarPrestamo cancelarPrestamo(RepositorioPrestamos repositorio, Clock reloj) {
         return new CancelarPrestamo(repositorio, reloj);
+    }
+
+    @Bean
+    public ArmarPanel armarPanel(ConsultarPrestamos consultar, DirectorioClientes directorio) {
+        return new ArmarPanel(consultar, directorio);
     }
 }
