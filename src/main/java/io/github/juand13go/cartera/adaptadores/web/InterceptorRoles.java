@@ -17,7 +17,7 @@ import io.github.juand13go.cartera.dominio.modelo.Prestamo;
  * no basta: alguien podría escribir la dirección a mano o enviar un POST con otra herramienta.
  *
  * Funciona como lista blanca (solo pasa lo que está permitido explícitamente):
- * - Sin sesión: a /login. (Las rutas públicas, /login, /css y /error, ni siquiera pasan por aquí.)
+ * - Sin sesión: a /login. (Las rutas públicas, /login, /css, /fuentes y /error, ni siquiera pasan por aquí.)
  * - Prestamista: todo, menos el portal del cliente.
  * - Cliente: solo GET bajo /mis-prestamos, y solo de SUS préstamos; además puede salir. Lo demás: 403.
  */

@@ -1,18 +1,58 @@
-/* Estilos de la cartera: CSS simple, sin frameworks. Los colores están en variables para cambiarlos en un solo lugar. */
+/*
+ * Libreta — cartera de préstamos.
+ * La libreta de cobro del prestamista, pero digital: ordenada, confiable y cálida.
+ * CSS simple, sin frameworks. Colores y fuentes en variables para cambiarlos en un solo lugar.
+ */
+
+/* ---------- Tipografías (alojadas en /fuentes, licencia OFL; no dependen de internet) ---------- */
+@font-face {
+    font-family: "Fraunces";
+    src: url("../fuentes/fraunces-600.woff2") format("woff2");
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: "IBM Plex Sans";
+    src: url("../fuentes/ibm-plex-sans-400.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: "IBM Plex Sans";
+    src: url("../fuentes/ibm-plex-sans-500.woff2") format("woff2");
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: "IBM Plex Sans";
+    src: url("../fuentes/ibm-plex-sans-600.woff2") format("woff2");
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* ---------- Paleta ---------- */
 :root {
-    --fondo: #f6f7f9;
-    --superficie: #ffffff;
-    --texto: #1f2933;
-    --suave: #5f6b7a;
-    --borde: #d9dee5;
-    --principal: #1f6f5c;
-    --principal-texto: #ffffff;
-    --exito: #e6f4ea;
-    --exito-texto: #1e5e2f;
-    --error: #fdecea;
-    --error-texto: #8a1c12;
-    --resaltado: #fff8e1;
-    --mora: #c62828;
+    --tinta: #0F4C45;        /* color principal: barra, botones, enlaces */
+    --fondo: #F7F5F0;        /* papel de la libreta */
+    --superficie: #FFFFFF;   /* tarjetas y tablas */
+    --texto: #1C2321;
+    --suave: #5C6663;        /* notas y etiquetas secundarias */
+    --borde: #E2DED5;
+
+    /* Estados de cuota: texto sobre fondo. Todos cumplen contraste WCAG AA (≥ 4.5:1). */
+    --pagada-texto: #2D794C;      --pagada-fondo: #E7F3EC;
+    --con-tiempo-texto: #3B5B7A;  --con-tiempo-fondo: #E8EEF4;
+    --retraso-texto: #926411;     --retraso-fondo: #FBF1DC;
+    --mora-texto: #B42318;        --mora-fondo: #FDECEA;
+
+    --ambar: #F5C451;        /* aviso de fecha simulada */
+
+    --letra-titulos: "Fraunces", Georgia, "Times New Roman", serif;
+    --letra-texto: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -21,12 +61,17 @@ body {
     margin: 0;
     background: var(--fondo);
     color: var(--texto);
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family: var(--letra-texto);
     font-size: 16px;
     line-height: 1.5;
 }
 
-a { color: var(--principal); }
+a { color: var(--tinta); }
+
+h1, h2 { font-family: var(--letra-titulos); font-weight: 600; color: var(--texto); }
+
+/* Montos: cifras del mismo ancho y alineadas a la derecha, para que las columnas cuadren. */
+.numero { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* Menú superior */
 .menu {
@@ -35,11 +80,11 @@ a { color: var(--principal); }
     align-items: center;
     gap: 12px 24px;
     padding: 12px 16px;
-    background: var(--principal);
-    color: var(--principal-texto);
+    background: var(--tinta);
+    color: #fff;
 }
-.menu a { color: var(--principal-texto); text-decoration: none; }
-.menu .marca { font-weight: 700; font-size: 18px; }
+.menu a { color: #fff; text-decoration: none; }
+.menu .marca { font-family: var(--letra-titulos); font-weight: 600; font-size: 20px; }
 .menu nav { display: flex; gap: 16px; }
 .menu .hoy { margin-left: auto; font-size: 14px; }
 
@@ -63,8 +108,7 @@ section {
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 8px; border-bottom: 1px solid var(--borde); text-align: left; white-space: nowrap; }
 th { font-size: 13px; color: var(--suave); text-transform: uppercase; letter-spacing: .03em; }
-.numero { text-align: right; font-variant-numeric: tabular-nums; }
-tr.resaltada { background: var(--resaltado); }
+tr.resaltada { background: var(--retraso-fondo); }
 
 .etiqueta {
     display: inline-block;
@@ -74,12 +118,12 @@ tr.resaltada { background: var(--resaltado); }
     font-size: 12px;
     font-weight: 600;
 }
-.etiqueta.mora { background: var(--mora); color: #fff; }
+.etiqueta.mora { background: var(--mora-fondo); color: var(--mora-texto); }
 
 /* Mensajes después de una acción */
 .aviso { padding: 10px 14px; border-radius: 6px; margin: 0 0 16px; }
-.aviso.exito { background: var(--exito); color: var(--exito-texto); }
-.aviso.error { background: var(--error); color: var(--error-texto); }
+.aviso.exito { background: var(--pagada-fondo); color: var(--pagada-texto); }
+.aviso.error { background: var(--mora-fondo); color: var(--mora-texto); }
 
 /* Al imprimir (recibos) no se muestra el menú ni los botones. */
 @media print {
@@ -113,22 +157,22 @@ button, .boton {
     display: inline-block;
     font: inherit;
     padding: 8px 14px;
-    border: 1px solid var(--principal);
+    border: 1px solid var(--tinta);
     border-radius: 6px;
-    background: var(--principal);
-    color: var(--principal-texto);
+    background: var(--tinta);
+    color: #fff;
     text-decoration: none;
     cursor: pointer;
 }
-.boton.secundario, button.secundario { background: transparent; color: var(--principal); }
-button.peligro { background: var(--mora); border-color: var(--mora); }
+.boton.secundario, button.secundario { background: transparent; color: var(--tinta); }
+button.peligro { background: var(--mora-texto); border-color: var(--mora-texto); }
 .acciones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
 /* Listas de datos (ficha del cliente, resumen del préstamo) */
 .datos { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 12px 0 0; }
 .datos dt { color: var(--suave); }
 .datos dd { margin: 0; }
-.etiqueta.activo { background: var(--exito); color: var(--exito-texto); }
+.etiqueta.activo { background: var(--pagada-fondo); color: var(--pagada-texto); }
 .formulario label.casilla { flex-direction: row; align-items: center; gap: 8px; color: var(--texto); }
 section form + form { margin-top: 0; }
 section > form.no-imprimir { margin-top: 12px; }
@@ -142,8 +186,8 @@ main > .acciones { justify-content: center; }
 /* Login y menú con sesión */
 .entrar { max-width: 420px; margin: 0 auto; }
 .menu .salir { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; }
-.menu .salir button { color: var(--principal-texto); border-color: var(--principal-texto); padding: 4px 10px; }
+.menu .salir button { color: #fff; border-color: #fff; padding: 4px 10px; }
 
 /* Barra de progreso del portal del cliente */
 .progreso { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
-.progreso progress { flex: 1; max-width: 360px; height: 14px; accent-color: var(--principal); }
+.progreso progress { flex: 1; max-width: 360px; height: 14px; accent-color: var(--tinta); }

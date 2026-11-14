@@ -18,6 +18,6 @@ public class ConfiguracionWeb implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registro) {
         registro.addInterceptor(interceptorRoles)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/login", "/css/**", "/error");
+                .excludePathPatterns("/login", "/css/**", "/fuentes/**", "/error");
     }
 }
