@@ -39,6 +39,15 @@ class PanelControladorTest {
     }
 
     @Test
+    void elPanelMuestraLasTresTarjetasDeResumen() throws Exception {
+        mvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Cobros de hoy")))
+                .andExpect(content().string(containsString("En mora")))
+                .andExpect(content().string(containsString("Cartera total")));
+    }
+
+    @Test
     void carlosApareceEnLaListaDeMora() throws Exception {
         // Carlos dejó de pagar en octubre de 2026: aparece en mora cualquier día después de esa fecha.
         mvc.perform(get("/"))

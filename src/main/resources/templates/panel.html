@@ -8,6 +8,28 @@
     <h1>Panel</h1>
     <div th:replace="~{fragmentos :: mensajes}"></div>
 
+    <!-- Lo primero que se ve: la plata de hoy, lo atrasado y lo que está prestado. -->
+    <div class="resumen">
+        <div class="tarjeta-resumen">
+            <p class="rotulo">Cobros de hoy</p>
+            <p class="cifra" th:text="${@textos.pesos(panel.totalCobrosDeHoy())}">$160.000</p>
+            <p class="detalle" th:text="${panel.cobrosDeHoy() == 0} ? 'Nada vence hoy'
+                    : (${panel.cobrosDeHoy() == 1} ? '1 cuota vence hoy' : ${panel.cobrosDeHoy()} + ' cuotas vencen hoy')">1 cuota vence hoy</p>
+        </div>
+        <div class="tarjeta-resumen" th:classappend="${panel.mora().tamano() > 0} ? 'alerta'">
+            <p class="rotulo">En mora</p>
+            <p class="cifra" th:text="${@textos.pesos(panel.totalEnMora())}">$390.000</p>
+            <p class="detalle" th:text="${panel.mora().tamano() == 0} ? 'Nadie está atrasado'
+                    : (${panel.mora().tamano() == 1} ? '1 préstamo atrasado' : ${panel.mora().tamano()} + ' préstamos atrasados')">1 préstamo atrasado</p>
+        </div>
+        <div class="tarjeta-resumen">
+            <p class="rotulo">Cartera total</p>
+            <p class="cifra" th:text="${@textos.pesos(panel.carteraTotal())}">$5.300.000</p>
+            <p class="detalle" th:text="'Capital que deben ' + ${panel.prestamosActivos()}
+                    + (${panel.prestamosActivos() == 1} ? ' préstamo activo' : ' préstamos activos')">Capital que deben 3 préstamos activos</p>
+        </div>
+    </div>
+
     <section>
         <h2>Agenda de cobros</h2>
         <p class="nota">Próxima cuota de cada préstamo que vence entre hoy y los próximos 7 días, de la más cercana a la más lejana.</p>
@@ -21,7 +43,7 @@
                 <tr th:each="cobro : ${panel.agenda()}" th:classappend="${cobro.esHoy()} ? 'resaltada'">
                     <td>
                         <span th:text="${#temporals.format(cobro.fecha(), 'dd/MM/yyyy')}">10/12/2026</span>
-                        <span th:if="${cobro.esHoy()}" class="etiqueta">hoy</span>
+                        <span th:if="${cobro.esHoy()}" class="etiqueta estado-CON_TIEMPO">hoy</span>
                     </td>
                     <td><a th:href="@{/clientes/{c}(c=${cobro.cedula()})}" th:text="${cobro.nombreCliente()}">Laura</a></td>
                     <td><a th:href="@{/prestamos/{id}(id=${cobro.prestamoId()})}" th:text="'#' + ${cobro.prestamoId()}">#1</a></td>
@@ -44,7 +66,7 @@
                 </thead>
                 <tbody>
                 <tr th:each="atrasado : ${panel.mora()}">
-                    <td><span class="etiqueta mora" th:text="${atrasado.diasDeAtraso()}">40</span></td>
+                    <td><span class="etiqueta estado-MORA" th:text="${atrasado.diasDeAtraso()} + (${atrasado.diasDeAtraso() == 1} ? ' día' : ' días')">40 días</span></td>
                     <td><a th:href="@{/clientes/{c}(c=${atrasado.cedula()})}" th:text="${atrasado.nombreCliente()}">Carlos</a></td>
                     <td><a th:href="@{/prestamos/{id}(id=${atrasado.prestamoId()})}" th:text="'#' + ${atrasado.prestamoId()}">#3</a></td>
                     <td th:text="${atrasado.cuotasVencidas()}">2</td>

@@ -122,6 +122,30 @@ class ArmarPanelTest {
     }
 
     @Test
+    void losTotalesDelResumenSumanCobrosDeHoyMoraYCartera() {
+        cliente("1000002", "Beto");
+        cliente("1000004", "Dora");
+        cliente("1000005", "Elsa");
+        cliente("1000007", "Gina");
+        prestamo("1000002", LocalDate.of(2026, 11, 8));   // vence hoy: 160.000
+        // Dora: 3 cuotas vencidas + multas = 406.000 (ver la prueba de la mora).
+        prestamos.crear("1000004", Contrato.borrador(new BigDecimal("1000000"), new BigDecimal("10"),
+                LocalDate.of(2026, 9, 1)).mora(new MultaFijaDiaria(new BigDecimal("1000"))).firmar());
+        prestamo("1000005", LocalDate.of(2026, 10, 25));  // debe la del 25 nov, sin multa: 160.000
+        long cerrado = prestamo("1000007", LocalDate.of(2026, 9, 1));
+        prestamos.guardarPago(cerrado, prestamos.buscarPorId(cerrado).cancelar(LocalDate.of(2026, 9, 10)), null);
+
+        Panel panel = armar();
+
+        assertEquals(1, panel.cobrosDeHoy());
+        assertEquals(0, new BigDecimal("160000").compareTo(panel.totalCobrosDeHoy()));
+        assertEquals(0, new BigDecimal("566000").compareTo(panel.totalEnMora()));
+        // El préstamo cerrado no cuenta: 2.000.000 + 1.000.000 + 2.000.000.
+        assertEquals(3, panel.prestamosActivos());
+        assertEquals(0, new BigDecimal("5000000").compareTo(panel.carteraTotal()));
+    }
+
+    @Test
     void recorrerLasColasConForEachNoLasVacia() {
         cliente("1000001", "Ana");
         cliente("1000002", "Beto");

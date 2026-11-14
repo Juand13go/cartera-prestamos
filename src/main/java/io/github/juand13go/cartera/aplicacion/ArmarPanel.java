@@ -36,27 +36,42 @@ public class ArmarPanel {
         this.directorio = directorio;
     }
 
-    /** Recorre los préstamos una vez y mete cada uno en la cola que le corresponda. O(P × n + P log P). */
+    /**
+     * Recorre los préstamos una vez: mete cada uno en la cola que le corresponda y, en el mismo recorrido,
+     * suma los totales de las tarjetas de resumen. O(P × n + P log P).
+     */
     public Panel ejecutar() {
         LocalDate hoy = consultar.hoy();
         ColaPrioridad<CobroAgendado> agenda = new ColaPrioridad<>(POR_FECHA);
         ColaPrioridad<PrestamoEnMora> mora = new ColaPrioridad<>(MAS_ATRASADO_PRIMERO);
+        int cobrosDeHoy = 0;
+        BigDecimal totalCobrosDeHoy = BigDecimal.ZERO;
+        BigDecimal totalEnMora = BigDecimal.ZERO;
+        int prestamosActivos = 0;
+        BigDecimal carteraTotal = BigDecimal.ZERO;
 
         for (Prestamo prestamo : consultar.todos()) {
             if (prestamo.estaCerrado()) {
                 continue;
             }
+            prestamosActivos++;
+            carteraTotal = carteraTotal.add(prestamo.capitalAdeudado());
             Cliente cliente = directorio.buscar(prestamo.getCedulaCliente());
             CobroAgendado cobro = proximoCobro(prestamo, cliente, hoy);
             if (cobro != null) {
                 agenda.insertar(cobro);
+                if (cobro.esHoy()) {
+                    cobrosDeHoy++;
+                    totalCobrosDeHoy = totalCobrosDeHoy.add(cobro.valorPendiente());
+                }
             }
             PrestamoEnMora atrasado = enMora(prestamo, cliente, hoy);
             if (atrasado != null) {
                 mora.insertar(atrasado);
+                totalEnMora = totalEnMora.add(atrasado.totalVencido());
             }
         }
-        return new Panel(hoy, agenda, mora);
+        return new Panel(hoy, agenda, mora, cobrosDeHoy, totalCobrosDeHoy, totalEnMora, prestamosActivos, carteraTotal);
     }
 
     /** La primera cuota sin cubrir que todavía no venció, si vence entre hoy y los próximos días; si no, null. */
