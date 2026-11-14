@@ -228,7 +228,7 @@ public class Prestamo {
             throw new IllegalArgumentException("El pago debe ser mayor que cero");
         }
         actualizarCronograma(fecha);
-        return aplicarPago(fecha, monto, false);
+        return aplicarPago(fecha, monto, false, cuotasSinCubrir());
     }
 
     /**
@@ -251,11 +251,13 @@ public class Prestamo {
     public Pago cancelar(LocalDate fecha) {
         validarFecha(fecha);
         actualizarCronograma(fecha);
+        // Se anotan antes de la rebaja, porque la rebaja sola puede dejar cubierta la cuota en curso.
+        ListaDoble<Cuota> sinCubrir = cuotasSinCubrir();
         BigDecimal rebaja = rebajaPorCancelar(fecha);
         if (rebaja.compareTo(BigDecimal.ZERO) > 0) {
             cronograma.ultimo().rebajarInteres(rebaja, fecha);
         }
-        return aplicarPago(fecha, saldoTotal(fecha), true);
+        return aplicarPago(fecha, saldoTotal(fecha), true, sinCubrir);
     }
 
     /**
@@ -286,8 +288,23 @@ public class Prestamo {
                 .divide(BigDecimal.valueOf(diasDelPeriodo), 0, RoundingMode.HALF_UP);
     }
 
-    /** Reparte un pago ya validado, con el cronograma ya actualizado a su fecha, y lo apila. */
-    private Pago aplicarPago(LocalDate fecha, BigDecimal monto, boolean esCancelacion) {
+    /** Las cuotas que todavía no están cubiertas, en orden. */
+    private ListaDoble<Cuota> cuotasSinCubrir() {
+        ListaDoble<Cuota> sinCubrir = new ListaDoble<>();
+        for (Cuota cuota : cronograma) {
+            if (!cuota.estaCubierta()) {
+                sinCubrir.agregarAlFinal(cuota);
+            }
+        }
+        return sinCubrir;
+    }
+
+    /**
+     * Reparte un pago ya validado, con el cronograma ya actualizado a su fecha, y lo apila.
+     * El pago queda con lo que necesita el recibo: qué cuotas quedaron cubiertas con él
+     * (de las que estaban sin cubrir antes) y cuánto se seguía debiendo después.
+     */
+    private Pago aplicarPago(LocalDate fecha, BigDecimal monto, boolean esCancelacion, ListaDoble<Cuota> sinCubrirAntes) {
         BigDecimal deuda = saldoTotal(fecha);
         if (monto.compareTo(deuda) > 0) {
             throw new IllegalArgumentException("El pago supera todo lo que se debe: " + deuda);
@@ -309,7 +326,14 @@ public class Prestamo {
         }
         capitalPendiente = capitalPendiente.subtract(restante);
 
-        Pago pago = new Pago(fecha, monto, abonoAMultas, abonoACuotas, restante, esCancelacion);
+        ListaDoble<Integer> cuotasCubiertas = new ListaDoble<>();
+        for (Cuota cuota : sinCubrirAntes) {
+            if (cuota.estaCubierta()) {
+                cuotasCubiertas.agregarAlFinal(cuota.getNumero());
+            }
+        }
+        Pago pago = new Pago(fecha, monto, abonoAMultas, abonoACuotas, restante, esCancelacion,
+                cuotasCubiertas, saldoTotal(fecha));
         pagos.apilar(pago);
         return pago;
     }

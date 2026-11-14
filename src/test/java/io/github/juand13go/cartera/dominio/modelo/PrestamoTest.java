@@ -711,6 +711,76 @@ class PrestamoTest {
         assertThrows(IllegalStateException.class, () -> prestamo.cancelar(LocalDate.of(2026, 11, 26)));
     }
 
+    // Lo que el pago recuerda para el recibo
+
+    /** Convierte la lista de cuotas cubiertas en texto, por ejemplo "1,2". */
+    private static String numeros(Pago pago) {
+        StringBuilder texto = new StringBuilder();
+        for (Integer numero : pago.getCuotasCubiertas()) {
+            if (texto.length() > 0) {
+                texto.append(',');
+            }
+            texto.append(numero);
+        }
+        return texto.toString();
+    }
+
+    @Test
+    void elPagoDe660000CubreLaCuota2YDejaElCapitalComoSaldo() {
+        Prestamo prestamo = prestamoCaso1(BaseInteres.CAPITAL_INICIAL);
+        prestamo.registrarPago(LocalDate.of(2026, 12, 10), pesos("160000"));
+
+        Pago pago = prestamo.registrarPago(LocalDate.of(2027, 1, 10), pesos("660000"));
+
+        assertEquals("2", numeros(pago));
+        // El 10 ene la cuota de febrero todavía no existe: solo queda el capital.
+        assertEquals(pesos("1500000"), pago.getSaldoDespues());
+    }
+
+    @Test
+    void unPagoParcialNoCubreNingunaCuota() {
+        Prestamo prestamo = prestamoCaso2(BaseInteres.CAPITAL_INICIAL);
+
+        Pago pago = prestamo.registrarPago(LocalDate.of(2027, 2, 10), pesos("100000"));
+
+        assertEquals("", numeros(pago));
+        assertEquals(pesos("1560000"), pago.getSaldoDespues());
+    }
+
+    @Test
+    void unPagoPuedeCubrirVariasCuotas() {
+        Prestamo prestamo = prestamoCaso1(BaseInteres.CAPITAL_INICIAL);
+
+        Pago pago = prestamo.registrarPago(LocalDate.of(2027, 1, 15), pesos("400000"));
+
+        assertEquals("1,2", numeros(pago));
+        // 2.000.000 de capital + 80.000 que faltan de la cuota de febrero.
+        assertEquals(pesos("2080000"), pago.getSaldoDespues());
+    }
+
+    @Test
+    void laCancelacionCuentaLaCuotaQueQuedaCubiertaPorLaRebaja() {
+        Prestamo prestamo = prestamoCaso1(InteresCancelacion.POR_DIAS);
+        prestamo.registrarPago(LocalDate.of(2026, 11, 20), pesos("100000"));
+
+        Pago pago = prestamo.cancelar(VEINTICINCO_NOV);
+
+        assertEquals("1", numeros(pago));
+        assertEquals(0, pago.getSaldoDespues().compareTo(BigDecimal.ZERO));
+    }
+
+    @Test
+    void alReconstruirElPagoRecuerdaLoMismo() {
+        Prestamo prestamo = prestamoCaso2(BaseInteres.CAPITAL_INICIAL);
+        prestamo.registrarPago(LocalDate.of(2027, 2, 10), pesos("100000"));
+
+        prestamo.deshacerUltimoPago();
+
+        Pago ultimo = prestamo.getPagos().verTope();
+        assertEquals("2", numeros(ultimo));
+        assertEquals(pesos("1500000"), ultimo.getSaldoDespues());
+    }
+
     // Cierre
 
     @Test
