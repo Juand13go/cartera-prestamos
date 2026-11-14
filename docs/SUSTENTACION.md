@@ -298,3 +298,157 @@ Sigue saliendo `PAGADA`. El estado de una cuota cubierta se decide comparando `f
 que se completó, guardado al momento del pago) con su fecha de vencimiento, no con la fecha de consulta.
 Solo las cuotas **sin cubrir** comparan el "hoy" con el vencimiento: hasta ese día están `CON_TIEMPO` y
 desde el día siguiente en `MORA`. Hay una prueba exactamente para esto en `CuotaTest`.
+
+---
+
+## Hito 3: Políticas del contrato
+
+### Qué se construyó
+
+Todas las condiciones que el prestamista elige al crear el préstamo, y las acciones que dependen de ellas:
+mora con días de gracia, condonación, dos órdenes de imputación, deshacer, plazo máximo y cancelación anticipada.
+
+| Clase | Paquete | Tipo | Qué decide |
+|---|---|---|---|
+| `Frecuencia` + `FrecuenciaMensual`, `FrecuenciaQuincenal`, `FrecuenciaSemanal` | `politicas` | Strategy | Fecha de cada cuota y cuántas caben en 24 meses (24 / 48 / 104) |
+| `PoliticaMora` + `SinMulta`, `MultaFijaDiaria`, `PorcentajeUnico`, `PorcentajeDiario` | `politicas` | Strategy | Cuánto vale la multa según los días con multa |
+| `Calendario` | `politicas` | enum | `TODOS_LOS_DIAS` o `SIN_DOMINGOS` (domingo → lunes) |
+| `OrdenImputacion` | `politicas` | enum | `MULTAS_PRIMERO` o `CUOTAS_PRIMERO` |
+| `AlVencerPlazo` | `politicas` | enum | `TRATAR_COMO_MORA` o `SEGUIR_COBRANDO` |
+| `InteresCancelacion` | `politicas` | enum | `PERIODO_COMPLETO` o `POR_DIAS` |
+| `Contrato.Borrador` | `modelo` | Builder | Arma el contrato con los valores por defecto y lo "firma" |
+
+Pruebas al cerrar el hito: 163 en total (81 nuevas en este hito).
+
+### Strategy o enum: cómo se decidió
+
+- **Strategy (interfaz + una clase por opción)** cuando cada opción trae **sus propios datos y su propio cálculo**:
+  `MultaFijaDiaria` guarda el valor diario; `PorcentajeDiario`, el porcentaje; `FrecuenciaMensual`, el día del mes;
+  `FrecuenciaSemanal`, el día de la semana. El préstamo solo conoce la interfaz: agregar una opción nueva no cambia `Prestamo`.
+- **enum** cuando la opción es solo una elección entre dos caminos, sin datos. Un enum también puede tener
+  comportamiento: `Calendario.ajustar(fecha)`.
+
+### El contrato se crea con un borrador (patrón Builder)
+
+```java
+Contrato contrato = Contrato.borrador(capital, tasa, desembolso)   // lo que no tiene valor por defecto
+        .base(BaseInteres.CAPITAL_VIGENTE)                          // se cambia solo lo que se quiera
+        .mora(new MultaFijaDiaria(new BigDecimal("2000")))
+        .firmar();                                                  // aquí se valida y nace el contrato
+```
+
+Valores por defecto (todos en `Contrato.Borrador`): base `CAPITAL_INICIAL`, mensual el día del desembolso,
+`TODOS_LOS_DIAS`, `SinMulta`, 2 días de gracia, `MULTAS_PRIMERO`, `TRATAR_COMO_MORA`, `PERIODO_COMPLETO`.
+El constructor de `Contrato` es privado: la única forma de crearlo es firmar un borrador. El contrato firmado
+tiene todo `final`; el borrador sí cambia, pero es solo un formulario.
+
+### Cada pieza en pocas palabras
+
+**Frecuencias.** Todas calculan la fecha de la cuota N desde el desembolso, en O(1), sin recorrer fechas.
+- Quincenal: cada mes tiene dos cortes, numerados 0 (día 15) y 1 (último día); la cuota N es el corte "primero + N − 1".
+- Semanal: la primera es el primer día de cobro que esté al menos 7 días después del desembolso; luego, +7 días.
+- Quincenal y semanal nunca dan un primer periodo más corto que uno completo.
+
+**Calendario.** `Contrato.fechaVencimiento(n)` = `calendario.ajustar(frecuencia.fechaVencimiento(desembolso, n))`.
+Mover un domingo al lunes no corre las cuotas siguientes, porque cada fecha se calcula por su número.
+
+**Mora.** La multa **se calcula, no se guarda**:
+1. `Cuota.diasDeAtraso(hoy)`: del vencimiento hasta el día en que se cubrió (o hasta hoy si no está cubierta).
+2. Días con multa = días de atraso − días de gracia (nunca negativo). Esto lo hace `Contrato.multa(cuota, hoy)`,
+   una sola vez para las 4 políticas.
+3. `PoliticaMora.multa(valorCuota, diasConMulta)`.
+
+Ejemplo: cuota de 160.000 que vence el 10 feb, 2 días de gracia, consulta el 15 feb (3 días con multa):
+fija de 2.000 → 6.000; 10 % único → 16.000; 1 % diario → 4.800. Si la cuota se cubre el 14 feb, la multa queda
+congelada en 2 días. La cuota guarda solo `multaPagada`; lo que falta es multa calculada − pagada.
+
+**Imputación.** `registrarPago` reparte con dos métodos, `pagarMultas` y `pagarCuotas` (ambos de la cuota más vieja
+a la más nueva). El orden del contrato solo decide cuál se llama primero. Lo que sobra va a capital.
+Con 170.000 el 15 dic (multa de 6.000): `MULTAS_PRIMERO` → 6.000 multa, 160.000 cuota 1, 4.000 cuota 2;
+`CUOTAS_PRIMERO` → 160.000 cuota 1, 10.000 cuota 2, multa pendiente.
+
+**Deshacer.** `deshacerUltimoPago()` desapila el último pago (O(1)) y llama a `recalcular()`:
+1. pasa los pagos de la pila a una `ListaDoble` con `agregarAlInicio` (eso invierte el orden: del más viejo al más nuevo);
+2. deja el préstamo como el día del desembolso;
+3. vuelve a llamar a `registrarPago` (o `cancelar`) con cada pago.
+
+No se "resta" el pago: un pago pudo pagar multas, cerrar cuotas, bajar capital y cambiar el valor de cuotas
+posteriores (capital vigente). Volver a aplicar los demás siempre da el resultado correcto.
+
+**Condonar.** `condonarMulta(numeroCuota, hoy)` fija la multa de esa cuota en lo que ya estaba pagado: lo pagado
+se respeta y lo que faltaba se anula. Se anota en una `TablaHash<Integer, BigDecimal>` (número de cuota → lo pagado),
+y cada cuota que nace en un recálculo busca su número en la tabla (O(1)) y nace condonada si estaba.
+
+**Plazo máximo.** La cuota número `cuotasEnPlazoMaximo()` incluye, además del interés, todo el capital pendiente
+(`Cuota.capitalIncluido`), y el capital del préstamo pasa a 0. Dentro de la cuota se paga primero el interés.
+Al vencer sin pagar: `TRATAR_COMO_MORA` no genera más cuotas (la última queda en mora); `SEGUIR_COBRANDO` genera
+una cuota de interés por periodo mientras quede capital sin pagar (con capital vigente, sobre ese capital).
+
+**Cancelación anticipada.** `valorParaCancelar(hoy)` = cuotas vencidas + multas + capital + cuota en curso.
+Con `POR_DIAS` y antes del vencimiento, la cuota en curso se cobra solo por los días corridos:
+interés × días corridos / días del periodo (lo ya pagado no se devuelve). Caso 1 al 25 nov (15 de 30 días):
+2.160.000 con periodo completo, 2.080.000 por días. `cancelar(fecha)` rebaja la cuota y paga exacto; el pago queda
+marcado `cancelacion` para poder reconstruir el préstamo desde sus pagos.
+
+### Cambios a lo construido en el hito 2
+
+- **Cierre:** antes era "capital pendiente = 0". Ahora es "no queda capital, ni cuotas sin cubrir, ni multas".
+  Hizo falta porque después de la cuota final el capital del préstamo es 0 pero la deuda está dentro de la cuota,
+  y con `CUOTAS_PRIMERO` la cuota final puede quedar pagada con su multa pendiente.
+- **`saldoTotal(hoy)`** ahora recibe la fecha, porque incluye las multas, que dependen del día.
+- **Capital vigente:** el interés se calcula sobre `capitalAdeudado()` (pendiente + capital sin pagar de la cuota final).
+  Antes del plazo es lo mismo que el capital pendiente.
+- **El contrato** ya no tiene constructor público: se crea con `Contrato.borrador(...).firmar()`.
+- **`Pago`** tiene tres partes (`abonoAMultas`, `abonoACuotas`, `abonoACapital`) y la marca `cancelacion`.
+
+### Estructuras de datos en este hito
+
+| Dónde | Estructura | Por qué |
+|---|---|---|
+| Deshacer | `Pila<Pago>` | Siempre se anula el último pago: `desapilar` lo da en O(1) |
+| Recalcular | `ListaDoble<Pago>` | `agregarAlInicio` (O(1)) invierte el orden de la pila para aplicar los pagos del más viejo al más nuevo |
+| Condonaciones | `TablaHash<Integer, BigDecimal>` | Cada cuota que nace pregunta "¿tengo condonación?" en O(1) |
+| Cronograma | `ListaDoble<Cuota>` | Se recorre en orden para repartir multas y cuotas; `ultimo()` da la cuota en curso en O(1) |
+
+### Complejidad
+
+Con *n* cuotas en el cronograma y *p* pagos:
+
+| Operación | Complejidad | Por qué |
+|---|---|---|
+| `Frecuencia.fechaVencimiento`, `Calendario.ajustar` | O(1) | cálculo directo |
+| `PoliticaMora.multa`, `Contrato.multa`, `Cuota.diasDeAtraso` | O(1) | aritmética |
+| `saldoMulta` | O(1) | multa calculada − pagada |
+| `saldoTotal(hoy)`, `capitalAdeudado()`, `estaCerrado()` | O(n) | recorren el cronograma |
+| `registrarPago`, `cancelar`, `valorParaCancelar` | O(n) | recorren el cronograma un número fijo de veces |
+| `condonarMulta` | O(n) | `obtener(i)` de la lista camina hasta la cuota; guardar en la tabla es O(1) |
+| `deshacerUltimoPago` | O(p × n) | vuelve a aplicar cada pago |
+
+Con máximo 24 cuotas mensuales (104 semanales) y pocos pagos, todo es inmediato.
+
+### Preguntas que podría hacer el profesor
+
+**1. ¿Dónde usaron el patrón Strategy y qué ganaron con él?**
+
+En `PoliticaMora` (4 opciones) y `Frecuencia` (3 opciones). El contrato guarda un objeto de la interfaz y el
+préstamo solo llama `politicaMora.multa(...)` o `frecuencia.fechaVencimiento(...)`, sin saber cuál opción es.
+Lo demostramos en el commit de las frecuencias quincenal y semanal: se agregaron dos opciones y `Prestamo` no
+cambió ni una línea. Para elecciones sin datos (calendario, orden de imputación, qué hacer al vencer el plazo,
+interés al cancelar) usamos enums, porque una interfaz con dos clases vacías sería más código sin ganar nada.
+
+**2. ¿Cómo funciona deshacer y por qué no simplemente "restan" el pago?**
+
+Se saca el último pago de la pila (O(1), porque deshacer siempre afecta al último) y se recalcula: el préstamo
+vuelve al estado del desembolso y se aplican de nuevo los pagos que quedan, del más viejo al más nuevo. Para
+eso se invierte la pila pasándola a una lista doble con `agregarAlInicio`. No se resta porque un pago pudo haber
+pagado multas, cubierto cuotas, bajado el capital y, con capital vigente, cambiado el valor de cuotas que nacieron
+después. Revertir cada efecto a mano tiene muchos casos especiales; volver a aplicar los pagos da siempre el mismo
+resultado, porque el préstamo es su contrato más sus pagos en orden.
+
+**3. Si condono una multa y después deshago un pago, ¿se pierde la condonación?**
+
+No. Las condonaciones se guardan aparte, en una tabla hash de número de cuota → lo que ya estaba pagado al condonar.
+Al recalcular, cada cuota que nace busca su número en la tabla (O(1)) y, si estaba, nace con la multa fijada en ese
+valor. Eso da el mismo resultado que si la condonación hubiera ocurrido en su momento. Un caso sutil: si el pago que
+se deshace es uno que había abonado a la multa antes de condonarla, ese abono vuelve a deberse, porque la condonación
+solo perdonó lo que faltaba, no lo que ya estaba pagado.
