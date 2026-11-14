@@ -594,3 +594,118 @@ Porque buscar por cédula es la operación más frecuente (buscador, validar que
 tabla hash la resuelve en O(1) en memoria, con nuestra propia estructura. La base de datos es la que los guarda de forma
 permanente; la tabla se llena una sola vez al arrancar (`listarTodos`) y se actualiza cada vez que se crea un cliente.
 Sus métodos son `synchronized` para que dos peticiones web simultáneas no la dañen.
+
+---
+
+## Hito 5: Web del prestamista
+
+### Qué se construyó
+
+La interfaz web con Thymeleaf y un solo archivo de CSS propio (sin frameworks de frontend). Se arranca con
+`./mvnw spring-boot:run` y se abre `http://localhost:8080`.
+
+| Ruta | Pantalla | Estructura que se ve trabajando |
+|---|---|---|
+| `/` | Panel: agenda de cobros y lista de mora | `ColaPrioridad` (dos, con comparadores distintos) |
+| `/clientes` | Lista y buscador por cédula | `TablaHash` del `DirectorioClientes` |
+| `/clientes/nuevo` | Crear cliente | |
+| `/clientes/{cedula}` | Ficha: datos, notas internas, deuda vs. cupo, préstamos | |
+| `/prestamos/nuevo?cedula=` | Formulario con las 11 condiciones y confirmación de cupo | |
+| `/prestamos/{id}` | Detalle: resumen, contrato, cronograma, pagos y acciones | `ListaDoble` (cronograma), `Pila` (pagos y deshacer), `TablaHash` (condonaciones) |
+| `/prestamos/{id}/recibos/{n}` | Recibo imprimible con enlace de WhatsApp | |
+
+Clases nuevas:
+- Dominio: `Recibo`; `Pago` ahora recuerda las cuotas que cubrió y el saldo que dejó.
+- Aplicación: `ArmarPanel` (con `Panel`, `CobroAgendado`, `PrestamoEnMora`), `GenerarRecibo`, `RegistroDePago`.
+- Web (`adaptadores/web`): `PanelControlador`, `ClientesControlador`, `PrestamosControlador`,
+  `DetallePrestamoControlador`, `ReciboControlador`, `FormularioCliente`, `FormularioPrestamo`, `Textos`, `ModeloComun`.
+
+Pruebas al cerrar el hito: 285 (50 nuevas).
+
+### El panel: dos colas de prioridad
+
+`ArmarPanel` recorre los préstamos activos una sola vez y llena dos colas:
+
+- **Agenda:** la próxima cuota sin cubrir (que aún no vence) de cada préstamo, si vence entre hoy y los próximos
+  7 días. Comparador: fecha más cercana primero (y nombre si coinciden). Las de hoy salen resaltadas.
+- **Mora:** los préstamos con alguna cuota vencida sin cubrir. Comparador: días de atraso de la cuota más vieja,
+  **invertido** (`.reversed()`), para que el montículo, que es de mínimo, entregue primero al más atrasado.
+  El total vencido suma lo que falta de esas cuotas y todas las multas pendientes.
+
+La vista recorre cada cola con `th:each`. El iterador de `ColaPrioridad` extrae de una copia: las filas salen en
+orden y la cola no se vacía.
+
+### El recibo sin guardar recibos
+
+Un recibo junta dos cosas que vienen de lugares distintos:
+- **Del dominio:** el `Pago` (desglose, cuotas que quedaron cubiertas, saldo justo después). Se calcula al repartir
+  el pago y, como el préstamo se reconstruye repitiendo los pagos en orden, siempre vuelve a salir igual.
+- **De la base de datos:** el número (id de la fila del pago) y la fecha-hora de registro (`RegistroDePago`).
+
+El pago número *n* del préstamo corresponde al registro número *n*: las dos listas están en el orden de los pagos.
+
+**WhatsApp:** `https://wa.me/57<celular>?text=<recibo>`. El texto se codifica con `URLEncoder` (espacios → `%20`,
+saltos de línea → `%0A`, tildes en UTF-8). El enlace se arma en el controlador: Thymeleaf no permite llamar beans
+dentro de `th:href` por seguridad.
+
+### Decisiones de la capa web
+
+- **Controladores delgados:** solo leen la petición, llaman un caso de uso y eligen la vista. No tienen reglas de negocio.
+- **POST → redirigir → GET:** después de crear, pagar, deshacer, condonar o cancelar se redirige. Si el usuario
+  recarga, el navegador pide la página de nuevo en vez de repetir la acción.
+- **Errores como mensajes:** cada acción atrapa los rechazos del dominio (`IllegalArgumentException`,
+  `IllegalStateException`) y los muestra como aviso (mensaje flash). El usuario nunca ve una página de error.
+- **Formularios:** `FormularioCliente` y `FormularioPrestamo` tienen setters porque Spring los llena con lo que llega
+  del navegador; son de la capa web, no del dominio.
+- **Valores por defecto en un solo lugar:** el formulario de préstamo no los repite; firma un contrato de ejemplo con
+  `Contrato.Borrador` y copia sus condiciones.
+- **Cupo:** si se supera, el formulario vuelve con la advertencia (cupo, lo que debe, lo que pide) y una casilla de
+  confirmación. Con la casilla marcada, el préstamo se crea.
+- **Las vistas llaman al dominio** directamente (`${cuota.estado(hoy)}`, `${prestamo.saldoMulta(cuota, hoy)}`), sin
+  clases intermedias. `Textos` traduce las políticas a frases ("Mensual, el día 5", "$2.000 por día de atraso").
+- **`hoy` en todas las vistas:** `ModeloComun` lo agrega desde el reloj; el menú muestra la fecha (real o simulada).
+- **Formatos:** pesos como `$1.234.567` y fechas `dd/MM/yyyy`.
+- **Imprimir:** el CSS oculta menú y botones al imprimir (`@media print`).
+
+### Complejidad
+
+| Operación | Complejidad | Por qué |
+|---|---|---|
+| Armar el panel | O(P × n + P log P) | recorre P préstamos con n cuotas e inserta en dos montículos |
+| Mostrar cada lista del panel | O(P log P) | el iterador extrae de una copia |
+| Buscar cliente por cédula | O(1) promedio | tabla hash |
+| Detalle de un préstamo | O(p × n) | reconstruir = repetir p pagos sobre n cuotas |
+| Recibo | O(p × n) | reconstruye el préstamo e invierte la pila de pagos (O(p)) |
+
+### Cómo hacer la demo
+
+1. `./mvnw spring-boot:run` → panel: Marta y Laura en la agenda; Carlos en mora (con multas).
+2. Clientes → buscar `1000000002` → ficha de Carlos con sus notas internas.
+3. Préstamo de Carlos → cronograma con cuotas "En mora" y multas → **Condonar** la multa de una cuota.
+4. **Registrar pago** → recibo → **Enviar por WhatsApp** (abre el mensaje ya escrito).
+5. Volver al préstamo → **Deshacer el último pago** → todo vuelve como estaba (la pila en acción).
+6. Crear un préstamo grande a Laura → aparece la advertencia de cupo → marcar la casilla → se crea.
+7. Para mostrar cómo crece la mora: `FECHA_SIMULADA=2027-01-20 ./mvnw spring-boot:run`.
+
+### Preguntas que podría hacer el profesor
+
+**1. ¿Cómo ordenan la lista de mora para que salga primero el más atrasado, si su cola de prioridad es de mínimo?**
+
+La `ColaPrioridad` no sabe qué es un atraso: el orden lo decide el `Comparator` que recibe al crearla. Para la mora se
+le pasa `Comparator.comparingInt(PrestamoEnMora::diasDeAtraso).reversed()`. Con el comparador invertido, el "menor"
+para el montículo es el de más días de atraso, y por eso sale primero. La agenda usa la misma clase con un comparador
+por fecha. Insertar cuesta O(log n) y mostrar la lista completa O(n log n), porque el iterador extrae de una copia sin
+vaciar la cola.
+
+**2. Si no guardan los recibos, ¿cómo pueden reimprimir el recibo de un pago de hace tres meses?**
+
+El préstamo se reconstruye repitiendo sus pagos en orden, y al repetir cada pago el dominio vuelve a calcular su
+desglose, qué cuotas cubrió y cuánto quedó debiendo, exactamente como el día en que se registró. La base de datos aporta
+lo que el dominio no sabe: el número del recibo (id del pago) y la hora de registro. Se juntan por posición: el pago
+número n con el registro número n.
+
+**3. ¿Qué pasa si el usuario recarga la página justo después de registrar un pago? ¿Se registra dos veces?**
+
+No. Después de cualquier POST el controlador responde con una redirección (patrón POST → redirigir → GET): el navegador
+termina en la página del recibo, que es un GET. Recargar vuelve a pedir el recibo, no repite el pago. Si de todas formas
+se registrara un pago por error, está el botón de deshacer el último pago, que lo saca de la pila y recalcula el préstamo.
