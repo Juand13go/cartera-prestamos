@@ -45,7 +45,8 @@ El cliente solo puede **ver** sus propios préstamos; cualquier otra cosa la blo
 ## Qué hace
 
 **Prestamista**
-- Panel con la **agenda de cobros** (próximos 7 días) y la **lista de mora** (del más atrasado al menos).
+- Panel con tres tarjetas de resumen (cobros de hoy, en mora, cartera total), la **agenda de cobros**
+  (próximos 7 días) y la **lista de mora** (del más atrasado al menos).
 - Clientes: listar, crear (con PIN), **buscar por cédula**, ficha con notas internas y deuda frente al cupo.
 - Crear préstamo con las 11 condiciones del contrato; si supera el cupo, pide confirmación.
 - Detalle del préstamo: cronograma con estados y multas, pagos, **registrar pago**, **deshacer el último pago**,
@@ -53,7 +54,8 @@ El cliente solo puede **ver** sus propios préstamos; cualquier otra cosa la blo
 - Recibo imprimible de cada pago, con enlace para enviarlo por **WhatsApp**.
 
 **Cliente** (solo lectura)
-- Sus préstamos con barra de progreso, próxima fecha de cobro, valor para estar al día y valor para cancelar hoy.
+- Sus préstamos, pensados para celular: tarjeta "Próximo pago", barra de progreso, valor para estar al día
+  y valor para cancelar hoy.
 - Historial de pagos con sus recibos.
 - Simulador: "si abono $X hoy", cómo quedarían el capital y, con capital vigente, el interés.
 
@@ -114,6 +116,25 @@ Ideas clave:
 | Orden de imputación | multas primero / cuotas primero | multas primero |
 | Al vencer el plazo | tratar como mora / seguir cobrando | tratar como mora |
 | Interés al cancelar antes | periodo completo / por días corridos | periodo completo |
+
+## Identidad visual
+
+**Libreta — cartera de préstamos.** La idea es la libreta de cobro del prestamista, pero digital: ordenada,
+confiable y cálida, no un banco frío. En cada pantalla lo primero que se ve es la plata y lo atrasado.
+
+- **Tipografías** (están en `static/fuentes`, con su licencia OFL, así que funcionan sin internet):
+  *Fraunces* para la marca, los títulos y las cifras grandes, porque es una serif cálida que recuerda la
+  letra de una libreta; *IBM Plex Sans* (400, 500, 600) para el resto, porque se lee bien en tamaños pequeños.
+  Los montos usan cifras de ancho fijo (`tabular-nums`) y van alineados a la derecha, para que las columnas cuadren.
+- **Paleta** (variables CSS en `:root`): tinta `#0F4C45` (verde petróleo, el color principal), papel `#F7F5F0`,
+  superficie `#FFFFFF`, texto `#1C2321`, texto suave `#5C6663` y bordes `#E2DED5`.
+- **Estados de cuota** (texto sobre fondo): pagada `#2D794C`/`#E7F3EC`, con tiempo `#3B5B7A`/`#E8EEF4`,
+  pagada con retraso `#926411`/`#FBF1DC`, mora `#B42318`/`#FDECEA`. Todos tienen contraste WCAG AA (≥ 4.5:1).
+  El verde y el ámbar se oscurecieron un poco frente a la propuesta inicial porque no llegaban a 4.5:1.
+  Cada etiqueta lleva el nombre del estado: el color acompaña, pero no es lo único que lo indica.
+- **Sobriedad**: sin degradados, sin sombras fuertes, sin íconos de adorno y sin frameworks CSS ni librerías JS.
+  Cuando la fecha es simulada, la barra lo avisa sobre fondo ámbar. Todo se ve bien desde 360 px de ancho,
+  y el recibo se imprime solo como comprobante, sin barra ni botones.
 
 ## Tecnologías
 
