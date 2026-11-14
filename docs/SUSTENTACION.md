@@ -1,6 +1,49 @@
 # Guía de sustentación — cartera-prestamos
 
 Este documento resume cada hito del proyecto para preparar la sustentación oral.
+Las secciones de cada hito se escribieron al terminarlo; cuando algo cambió después, hay una nota que lo dice.
+
+## Índice
+
+- [Resumen en una página](#resumen-en-una-página) — para repasar la noche anterior
+- [Hito 1: Estructuras de datos](#hito-1-estructuras-de-datos)
+- [Hito 2: Dominio del rédito](#hito-2-dominio-del-rédito)
+- [Hito 3: Políticas del contrato](#hito-3-políticas-del-contrato)
+- [Hito 4: Persistencia y casos de uso](#hito-4-persistencia-y-casos-de-uso)
+- [Hito 5: Web del prestamista](#hito-5-web-del-prestamista)
+- [Hito 6: Login, roles y portal del cliente](#hito-6-login-roles-y-portal-del-cliente)
+- [Preguntas generales del proyecto](#preguntas-generales-del-proyecto)
+- [Lista de verificación contra el enunciado](#lista-de-verificación-contra-el-enunciado)
+
+---
+
+## Resumen en una página
+
+**Qué es:** sistema web para un prestamista que maneja préstamos tipo rédito (cada periodo se paga el interés; lo que
+se pague de más va a capital; se cierra cuando no se debe nada). Dos roles: prestamista (todo) y cliente (solo lectura,
+solo lo suyo). 327 pruebas automáticas.
+
+**Las cuatro estructuras (hechas a mano, genéricas, `Iterable`):**
+
+| Estructura | Dónde se usa | Operación clave | Complejidad |
+|---|---|---|---|
+| `ListaDoble<T>` | Cronograma de cuotas (crece una a la vez) | `agregarAlFinal`, `ultimo`, `eliminarUltimo` | O(1) |
+| `TablaHash<K,V>` | Clientes por cédula (buscador y login); condonaciones | `guardar`, `buscar` | O(1) promedio (factor de carga 0,75) |
+| `ColaPrioridad<T>` | Agenda de cobros (por fecha) y lista de mora (por atraso, comparador invertido) | `insertar`, `extraer` | O(log n) |
+| `Pila<T>` | Historial de pagos; deshacer el último | `apilar`, `desapilar` | O(1) |
+
+**Cinco ideas del diseño que conviene saber explicar:**
+1. **La base de datos guarda, las estructuras calculan.** Solo se guardan clientes, contratos, pagos y condonaciones.
+   Al leer un préstamo se reconstruye repitiendo sus pagos en orden; cuotas, estados, multas y saldos se calculan.
+2. **Deshacer** = desapilar el último pago y volver a aplicar los demás desde el contrato.
+3. **Strategy** en `Frecuencia` y `PoliticaMora`: el préstamo solo conoce la interfaz; agregar opciones no lo cambia.
+4. **Hexagonal ligera:** el dominio es Java puro (sin Spring, sin SQL, sin colecciones de `java.util`); la aplicación
+   habla con el exterior por puertos (interfaces); los adaptadores (JDBC, BCrypt, web) los implementan.
+5. **Seguridad en el backend:** `InterceptorRoles` revisa cada petición antes del controlador (lista blanca); contraseña
+   y PIN solo como hash BCrypt.
+
+**Números para la demo (caso 1):** 2.000.000 al 8 % → cuotas de 160.000 los días 10. Si el 10 ene paga 660.000:
+160.000 a la cuota y 500.000 a capital; con capital vigente las siguientes cuotas bajan a 120.000.
 
 ---
 
@@ -180,7 +223,7 @@ y para la mora (por días de atraso, invertido), sin escribir dos estructuras.
 
 El corazón del negocio en Java puro (sin Spring, sin base de datos): un préstamo tipo **rédito** que
 genera sus cuotas de interés a medida que pasa el tiempo, recibe pagos, los reparte y se cierra cuando
-el capital llega a 0.
+el capital llega a 0 *(desde el hito 3: cuando no queda capital, ni cuotas, ni multas por pagar)*.
 
 | Clase | Paquete | Qué es |
 |---|---|---|
@@ -188,8 +231,8 @@ el capital llega a 0.
 | `EstadoCuota` | `dominio.modelo` | `CON_TIEMPO`, `PAGADA`, `PAGADA_CON_RETRASO`, `MORA` |
 | `BaseInteres` | `dominio.modelo` | `CAPITAL_INICIAL` (el interés nunca baja) o `CAPITAL_VIGENTE` (baja si se abona a capital) |
 | `Contrato` | `dominio.modelo` | Las condiciones: capital, tasa, base, fecha de desembolso, frecuencia. Todo `final`, sin setters |
-| `Prestamo` | `dominio.modelo` | Contrato + cronograma (`ListaDoble<Cuota>`) + pagos (`Pila<Pago>`) + capital pendiente |
-| `Pago` | `dominio.modelo` | Fecha, monto y cómo se repartió: `abonoACuotas` + `abonoACapital` |
+| `Prestamo` | `dominio.modelo` | Contrato + cronograma (`ListaDoble<Cuota>`) + pagos (`Pila<Pago>`) + capital pendiente *(desde el hito 4 también tiene `id`)* |
+| `Pago` | `dominio.modelo` | Fecha, monto y cómo se repartió: `abonoACuotas` + `abonoACapital` *(el hito 3 agrega `abonoAMultas` y la marca de cancelación; el hito 5, las cuotas cubiertas y el saldo después)* |
 | `Frecuencia` | `dominio.politicas` | Interfaz (patrón **Strategy**): calcula la fecha de vencimiento de la cuota número N |
 | `FrecuenciaMensual` | `dominio.politicas` | Cobro mensual en un día fijo; si el mes no tiene ese día, el último día del mes |
 
@@ -204,6 +247,7 @@ Pruebas: `CuotaTest` (9), `FrecuenciaMensualTest` (7), `PrestamoTest` (21). Tota
 3. **Los pagos son al préstamo**, no a una cuota. `registrarPago` reparte así:
    cuotas vencidas (de la más vieja a la más nueva) → cuota actual → **lo que sobra va a capital**.
 4. **Cierre**: cuando el capital pendiente llega a 0, el préstamo se cierra, no genera más cuotas y no recibe pagos.
+   *(Cambió en el hito 3: con la cuota final que incluye el capital, cerrado = sin capital, cuotas ni multas pendientes.)*
 
 ### Decisiones importantes (y por qué)
 
@@ -227,7 +271,8 @@ Lo que sí se guarda es `fechaCubierta`, el día en que se completó, porque es 
 **¿Por qué el "hoy" llega como parámetro?**
 `estado(hoy)`, `actualizarCronograma(hoy)` y `registrarPago(fecha, ...)` reciben la fecha. Así el dominio
 no depende del reloj del computador, las pruebas usan las fechas exactas de los casos, y en la demo se
-podrá simular otra fecha. El `Clock` de `America/Bogota` vivirá en la capa de aplicación.
+podrá simular otra fecha. *(Quedó así en el hito 4: `ConfiguracionReloj`, en `adaptadores/configuracion`, crea el
+`Clock` de `America/Bogota`; los casos de uso lo reciben y le piden la fecha de hoy.)*
 
 **¿Por qué se valida todo antes de repartir el pago?**
 Si un pago se rechazara a mitad del reparto, algunas cuotas ya estarían cubiertas y el préstamo quedaría
@@ -258,9 +303,9 @@ Siendo *n* el número de cuotas del cronograma y *k* las cuotas nuevas que hay q
 |---|---|---|
 | `Frecuencia.fechaVencimiento` | O(1) | cálculo directo con `YearMonth`, sin recorrer meses |
 | `actualizarCronograma(hoy)` | O(k) | cada cuota nueva es un `ultimo()` y un `agregarAlFinal()`, ambos O(1) |
-| `saldoTotal()` | O(n) | suma el saldo de todas las cuotas |
+| `saldoTotal()` | O(n) | suma el saldo de todas las cuotas *(desde el hito 3 es `saldoTotal(hoy)` y suma también las multas)* |
 | `registrarPago` | O(n + k) | actualiza el cronograma, calcula el saldo y recorre las cuotas una vez |
-| `estaCerrado()` | O(1) | compara el capital con 0 |
+| `estaCerrado()` | O(1) | compara el capital con 0 *(desde el hito 3 es O(n): revisa también cuotas y multas)* |
 | `Cuota.estado`, `Cuota.cubrir` | O(1) | comparaciones y una suma |
 
 En un rédito de máximo 24 meses, *n* ≤ 24 con frecuencia mensual: recorrer el cronograma es inmediato.
@@ -499,8 +544,9 @@ una fila, y las reglas de negocio viven en un solo lugar (el dominio, que ya est
 | `pago` | fecha, monto, si fue cancelación, fecha-hora de registro | el `id` crece con cada pago: da el orden y es el número de recibo |
 | `condonacion` | número de cuota y en cuánto quedó fijada la multa | llave (préstamo, cuota): no se condona dos veces |
 
-SQL estándar (`GENERATED ALWAYS AS IDENTITY`, `DATE '...'`) y H2 en modo PostgreSQL: para migrar a PostgreSQL basta
-cambiar las variables `DB_URL`, `DB_USUARIO` y `DB_CLAVE`.
+SQL estándar (`GENERATED ALWAYS AS IDENTITY`, `DATE '...'`) y H2 en modo PostgreSQL: para migrar a PostgreSQL se agregan
+al `pom.xml` el driver y el módulo de Flyway para PostgreSQL, y se cambian las variables `DB_URL`, `DB_USUARIO` y `DB_CLAVE`.
+*(Corregido en el repaso final: antes decía que bastaba con las variables.)*
 
 ### Arquitectura hexagonal: puertos y adaptadores
 
@@ -822,3 +868,123 @@ En ninguna parte en texto plano. La configuración tiene solo el hash BCrypt de 
 hash de cada PIN. Al entrar, BCrypt calcula si lo que se escribió corresponde a ese hash; no hay forma de obtener la clave
 original a partir del hash. Como BCrypt agrega una sal aleatoria, dos clientes con el mismo PIN tienen hashes distintos, y
 como es lento a propósito, probar miles de PIN por fuerza bruta resulta costoso.
+
+---
+
+## Preguntas generales del proyecto
+
+**1. ¿Por qué no usaron JPA/Hibernate?**
+
+Porque el enunciado pide JDBC con SQL escrito a mano, y además encaja con el diseño: la base de datos solo guarda lo que
+pasó (contratos, pagos, condonaciones) y el dominio calcula todo lo demás con nuestras estructuras. Con JPA, el modelo del
+dominio quedaría atado a las tablas (anotaciones, setters, colecciones de `java.util`), y eso rompería las reglas del
+dominio. Con `JdbcTemplate`, cada consulta se lee tal cual en el código y el repositorio solo traduce filas a objetos.
+
+**2. ¿Por qué H2 y cómo pasarían a PostgreSQL?**
+
+H2 corre dentro de la aplicación y guarda en un archivo (`./data/cartera`): no hay que instalar nada para la demo. Está
+en modo PostgreSQL y las migraciones usan SQL estándar (`GENERATED ALWAYS AS IDENTITY`, `DATE '...'`, `CHECK`). Para pasar a
+PostgreSQL se agregan dos dependencias al `pom.xml` (el driver de PostgreSQL y el módulo de Flyway para PostgreSQL) y se
+definen `DB_URL`, `DB_USUARIO` y `DB_CLAVE`. El SQL de las migraciones y el código Java no cambian.
+
+**3. ¿Qué ganaron con la arquitectura hexagonal?**
+
+El centro (dominio y casos de uso) no sabe que existen Spring, JDBC ni la web. Eso permite probarlo sin base de datos ni
+servidor: las pruebas del dominio y de los casos de uso corren en milisegundos, con repositorios falsos hechos con nuestras
+propias estructuras. Cambiar H2 por PostgreSQL, o JDBC por otra tecnología, solo toca un adaptador.
+
+**4. ¿Por qué no usan `ArrayList`, `HashMap`, `PriorityQueue` ni `Stack`?**
+
+Porque el objetivo del proyecto es implementar y usar estructuras propias. En `dominio` y `aplicacion` no hay ninguna
+colección de `java.util` (lo verificamos con `grep`): solo `Iterator` y `NoSuchElementException` (necesarios para el
+for-each) y `Comparator` (para que la cola de prioridad sepa ordenar). Ninguno de esos es una colección. Incluso los
+repositorios JDBC agregan cada fila directamente a una `ListaDoble`.
+
+**5. ¿Cómo saben que todo funciona?**
+
+Hay 327 pruebas automáticas (`./mvnw test`): de cada estructura, del dominio (incluidos los 5 casos calculados a mano), de
+las políticas, de los casos de uso (sin Spring), de la persistencia (contra H2 real con Flyway), de las pantallas (con
+`MockMvc`) y del interceptor de roles (enviando peticiones prohibidas directamente). Además, los datos de prueba tienen su
+propia prueba que comprueba el estado de cada préstamo a una fecha fija. Y la aplicación se probó en vivo: así encontramos
+el problema de `;jsessionid`, que las pruebas automáticas no veían.
+
+---
+
+## Lista de verificación contra el enunciado
+
+Cada requisito de `CLAUDE.md` y dónde se cumple.
+
+**Stack y configuración**
+
+| Requisito | Dónde |
+|---|---|
+| Java 25, Maven con `./mvnw`, Spring Boot, Spring MVC, Thymeleaf | `pom.xml` |
+| JDBC con `JdbcTemplate`, SQL a mano, sin JPA | `RepositorioClientesJdbc`, `RepositorioPrestamosJdbc` |
+| H2 en archivo `./data/cartera`, `MODE=PostgreSQL`, SQL estándar; `data/` en `.gitignore` | `application.properties`, `.gitignore`, `V1__crea_esquema.sql` |
+| Migraciones Flyway | `db/migration/V1__crea_esquema.sql`, `V2__datos_de_prueba.sql` |
+| Pruebas con JUnit 5 | `src/test` (327 pruebas) |
+| Solo `spring-security-crypto` para BCrypt | `pom.xml`, `CifradorPinBCrypt` |
+| Conexión con variables de entorno y valores por defecto | `application.properties` (`DB_URL`, `DB_USUARIO`, `DB_CLAVE`) |
+
+**Arquitectura y reglas del código**
+
+| Requisito | Dónde |
+|---|---|
+| Hexagonal: `dominio` / `aplicacion` (+ `puertos`) / `adaptadores` | paquetes bajo `io.github.juand13go.cartera` |
+| `dominio` sin Spring, sin SQL, sin `aplicacion` ni `adaptadores` | verificado con `grep` (0 importaciones) |
+| Sin colecciones de `java.util` en `dominio` y `aplicacion` | verificado con `grep` (solo `Iterator`, `Comparator`, `NoSuchElementException`) |
+| Strategy para las políticas | `Frecuencia` (3 clases), `PoliticaMora` (4 clases) |
+| "Hoy" con `Clock` en `America/Bogota`; fecha simulable con `app.fecha-simulada` | `ConfiguracionReloj` |
+| Dinero `BigDecimal` con `HALF_UP` al peso; fechas `LocalDate` | `Prestamo.interesProximaCuota`, políticas de mora |
+| Dominio sin setters, con acciones de negocio | verificado con `grep` (0 setters en `dominio`) |
+
+**Estructuras de datos**
+
+| Requisito | Dónde |
+|---|---|
+| `ListaDoble`, `TablaHash` (encadenamiento, redimensión a 0,75), `ColaPrioridad` (montículo sobre arreglo con `Comparator`), `Pila` | `dominio/estructuras` |
+| Genéricas e `Iterable` | las cuatro clases |
+| Pruebas propias de cada una | `ListaDobleTest`, `TablaHashTest`, `ColaPrioridadTest`, `PilaTest` |
+| Javadoc con la complejidad de cada operación | las cuatro clases |
+
+**Dominio y reglas del rédito**
+
+| Requisito | Dónde |
+|---|---|
+| `Cuota` con el diseño del estudiante, estado calculado, `cubrir`, `saldoPendiente` | `Cuota`, `CuotaTest` |
+| `Cliente`, `Prestamo`, `Contrato`, `Pago`, `Recibo` | `dominio/modelo` |
+| Pagos al préstamo, no a una cuota; el préstamo los reparte | `Prestamo.registrarPago` |
+| Cronograma que crece un periodo a la vez | `Prestamo.actualizarCronograma` |
+| Plazo máximo de 24 meses con capital en la última cuota | `Prestamo.agregarSiguienteCuota`, `Frecuencia.cuotasEnPlazoMaximo` |
+| Nada se capitaliza | multas y cuotas pendientes son deuda aparte (`saldoTotal`) |
+| Las 11 variables del contrato con sus valores por defecto | `Contrato.Borrador`, formulario de préstamo |
+| Cancelación anticipada sin intereses futuros | `Prestamo.valorParaCancelar`, `Prestamo.cancelar` |
+| Cupo con confirmación explícita | `CrearPrestamo`, `CupoExcedidoException`, formulario de préstamo |
+| Condonar la multa de una cuota | `Prestamo.condonarMulta`, botón "Condonar" |
+| Deshacer = sacar de la pila y recalcular | `Prestamo.deshacerUltimoPago` |
+| Casos de prueba 1 a 5 | `PrestamoTest` (`caso1...` a `caso4...`), `CuotaTest` (caso 5) |
+
+**Interfaz web**
+
+| Requisito | Dónde |
+|---|---|
+| Dos roles, mismo login; prestamista con contraseña BCrypt de la configuración; cliente con cédula + PIN | `login.html`, `IniciarSesion` |
+| Sesión HTTP | `SesionWeb` |
+| `InterceptorRoles` bloquea POST del cliente y préstamos ajenos en el backend | `InterceptorRoles`, `InterceptorRolesTest` |
+| Panel: agenda (ColaPrioridad por fecha) y mora (ColaPrioridad por días de atraso) | `/`, `ArmarPanel` |
+| Clientes: listar, crear, buscar por cédula (TablaHash) | `/clientes`, `DirectorioClientes` |
+| Crear préstamo con todas las variables y valores por defecto | `/prestamos/nuevo` |
+| Detalle: cronograma con estado, capital, pagos, pagar, deshacer, condonar, valor para cancelar hoy | `/prestamos/{id}` |
+| Recibo imprimible con enlace `wa.me/57...` | `/prestamos/{id}/recibos/{n}` |
+| Cliente: préstamos con barra de progreso, próxima fecha y valor para estar al día | `/mis-prestamos` |
+| Cliente: historial de pagos con recibos | `/mis-prestamos/{id}` |
+| Cliente: simulador "si abono $X hoy" | `/mis-prestamos/{id}?abono=...`, `SimularAbono` |
+| Cliente: valor para cancelar todo hoy | `/mis-prestamos` y `/mis-prestamos/{id}` |
+| Datos de prueba inventados (≥ 3 clientes, distintos estados, uno en mora) | `V2__datos_de_prueba.sql`, `DatosDePruebaTest` |
+
+**Documentación**
+
+| Requisito | Dónde |
+|---|---|
+| `README.md` (qué es, cómo correrlo, arquitectura, estructuras, usuarios de prueba) | `README.md` |
+| Guía de sustentación por hito, con 3 preguntas por hito | este archivo |

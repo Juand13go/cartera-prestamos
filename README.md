@@ -23,7 +23,7 @@ La primera vez, Flyway crea la base de datos H2 en `./data/cartera` y carga los 
 | Simular otra fecha (ver cómo crece la mora) | `FECHA_SIMULADA=2027-01-20 ./mvnw spring-boot:run` |
 | Ver las tablas en la consola de H2 | `H2_CONSOLA=true ./mvnw spring-boot:run` → http://localhost:8080/h2-console (URL `jdbc:h2:file:./data/cartera`, usuario `sa`, sin clave) |
 | Volver a los datos de prueba originales | detener la aplicación y borrar la carpeta `data/` |
-| Usar PostgreSQL en vez de H2 | definir `DB_URL`, `DB_USUARIO` y `DB_CLAVE` (el SQL es estándar) |
+| Usar PostgreSQL en vez de H2 | agregar al `pom.xml` el driver `org.postgresql:postgresql` y `org.flywaydb:flyway-database-postgresql`, y definir `DB_URL`, `DB_USUARIO` y `DB_CLAVE`. El SQL y el código no cambian |
 | Cambiar el acceso del prestamista | `PRESTAMISTA_USUARIO` y `PRESTAMISTA_CLAVE_CIFRADA` (hash BCrypt) |
 | Cambiar el monto mínimo de un préstamo | `MONTO_MINIMO` (por defecto 50000) |
 
