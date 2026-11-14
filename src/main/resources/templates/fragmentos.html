@@ -13,11 +13,19 @@
 
 <header th:fragment="menu" class="menu">
     <a class="marca" th:href="@{/}">Cartera</a>
-    <nav>
+    <!-- El menú depende del rol; el interceptor de roles es el que de verdad bloquea en el backend. -->
+    <nav th:if="${usuario != null and usuario.esPrestamista()}">
         <a th:href="@{/}">Panel</a>
         <a th:href="@{/clientes}">Clientes</a>
     </nav>
+    <nav th:if="${usuario != null and usuario.esCliente()}">
+        <a th:href="@{/mis-prestamos}">Mis préstamos</a>
+    </nav>
     <span class="hoy">Hoy: <strong th:text="${#temporals.format(hoy, 'dd/MM/yyyy')}">14/11/2026</strong></span>
+    <form th:if="${usuario != null}" class="salir" th:action="@{/salir}" method="post">
+        <span th:text="${usuario.nombre}">Laura</span>
+        <button type="submit" class="secundario">Salir</button>
+    </form>
 </header>
 
 <!-- Mensajes que dejan las acciones (pagar, deshacer...) después de redirigir. -->

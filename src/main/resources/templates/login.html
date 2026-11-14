@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabeza('Entrar')}"></head>
+<body>
+<header th:replace="~{fragmentos :: menu}"></header>
+
+<main>
+    <h1>Entrar</h1>
+    <div th:replace="~{fragmentos :: mensajes}"></div>
+
+    <div class="dos-columnas">
+        <section>
+            <h2>Soy cliente</h2>
+            <p class="nota">Con su cédula y el PIN de 4 dígitos que le dio el prestamista.</p>
+            <p class="aviso error" th:if="${errorCliente}" th:text="${errorCliente}">Usuario o clave incorrectos</p>
+            <form class="formulario" th:action="@{/login/cliente}" method="post">
+                <label>Cédula <input type="text" name="cedula" inputmode="numeric" th:value="${cedulaEscrita}" required autofocus></label>
+                <label>PIN <input type="password" name="pin" inputmode="numeric" maxlength="4" required></label>
+                <div class="acciones ancho"><button type="submit">Entrar como cliente</button></div>
+            </form>
+        </section>
+
+        <section>
+            <h2>Soy el prestamista</h2>
+            <p class="aviso error" th:if="${errorPrestamista}" th:text="${errorPrestamista}">Usuario o clave incorrectos</p>
+            <form class="formulario" th:action="@{/login/prestamista}" method="post">
+                <label>Usuario <input type="text" name="usuario" th:value="${usuarioEscrito}" required></label>
+                <label>Contraseña <input type="password" name="clave" required></label>
+                <div class="acciones ancho"><button type="submit">Entrar como prestamista</button></div>
+            </form>
+        </section>
+    </div>
+</main>
+</body>
+</html>
