@@ -2,9 +2,11 @@ package io.github.juand13go.cartera.aplicacion;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +15,8 @@ import org.junit.jupiter.api.Test;
 import io.github.juand13go.cartera.dominio.modelo.Cliente;
 import io.github.juand13go.cartera.dominio.modelo.Contrato;
 import io.github.juand13go.cartera.dominio.modelo.Prestamo;
+import io.github.juand13go.cartera.dominio.politicas.FrecuenciaMensual;
+import io.github.juand13go.cartera.dominio.politicas.FrecuenciaSemanal;
 import io.github.juand13go.cartera.dominio.politicas.MultaFijaDiaria;
 
 /** Panel armado el 8 de diciembre de 2026: la agenda llega hasta el 15 de diciembre. */
@@ -160,5 +164,22 @@ class ArmarPanelTest {
 
         assertEquals(2, vistos);
         assertEquals(2, panel.agenda().tamano());
+    }
+
+    @Test
+    void cadaCobroTraeLaFrecuenciaDeSuContrato() {
+        cliente("1000001", "Ana");
+        cliente("1000002", "Beto");
+        prestamo("1000001", LocalDate.of(2026, 11, 10)); // mensual: vence el 10 dic
+        // Semanal los martes, desembolsado el martes 1 dic: la primera cuota vence hoy, martes 8 dic.
+        prestamos.crear("1000002", Contrato.borrador(new BigDecimal("1000000"), new BigDecimal("2"), LocalDate.of(2026, 12, 1))
+                .frecuencia(new FrecuenciaSemanal(DayOfWeek.TUESDAY)).firmar());
+
+        Panel panel = armar();
+
+        CobroAgendado semanal = panel.agenda().extraer();
+        assertEquals("Beto", semanal.nombreCliente());
+        assertInstanceOf(FrecuenciaSemanal.class, semanal.frecuencia());
+        assertInstanceOf(FrecuenciaMensual.class, panel.agenda().extraer().frecuencia());
     }
 }

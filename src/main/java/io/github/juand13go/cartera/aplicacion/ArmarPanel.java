@@ -86,7 +86,7 @@ public class ArmarPanel {
             }
             return new CobroAgendado(prestamo.getId(), cliente.getCedula(), cliente.getNombre(), cliente.getTelefono(),
                     cuota.getNumero(), cuota.getFechaVencimiento(), cuota.saldoPendiente(),
-                    cuota.getFechaVencimiento().equals(hoy));
+                    cuota.getFechaVencimiento().equals(hoy), prestamo.getContrato().getFrecuencia());
         }
         return null;
     }
