@@ -74,9 +74,9 @@ class AgendaWebTest {
     }
 
     @Test
-    void cobrarLlevaAlFormularioDePagoConElMontoPrecargado() throws Exception {
+    void detalleLlevaAlFormularioDePagoConElMontoPrecargado() throws Exception {
         String agenda = agenda();
-        assertTrue(agenda.matches("(?s).*href=\"/prestamos/\\d+\\?monto=\\d+#registrar-pago\".*"));
+        assertTrue(agenda.matches("(?s).*href=\"/prestamos/\\d+\\?monto=\\d+#registrar-pago\">Detalle</a>.*"));
 
         mvc.perform(get("/prestamos/1").param("monto", "160000"))
                 .andExpect(status().isOk())

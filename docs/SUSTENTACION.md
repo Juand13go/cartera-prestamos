@@ -686,7 +686,7 @@ solo cambió cómo se dibuja. En vez de una fila de tabla, cada cobro es una tar
 
 - un calendario pequeño con el día de la semana (LUN, MAR, MIÉ...) o "HOY", y el número del día;
 - el cliente y "Préstamo #4 · cuota 4", más " · semanal" o " · quincenal" si no es mensual;
-- el valor, un botón de recordatorio por WhatsApp y un botón "Cobrar".
+- el valor, un botón de recordatorio por WhatsApp y un botón "Detalle".
 
 Las tarjetas salen en el orden en que las entrega el iterador (la fecha más cercana primero). La vista no ordena
 nada: si se ordenara en la plantilla, la cola de prioridad dejaría de tener sentido.
@@ -697,7 +697,7 @@ Piezas que intervienen:
 - `Textos` (adaptador web) arma los textos de la tarjeta (`diaCalendario`, `detalleCobro`) y el enlace
   `https://wa.me/57<teléfono>?text=...` (`enlaceRecordatorio`). El texto va codificado para URL con `URLEncoder`,
   igual que el del recibo.
-- "Cobrar" lleva a `/prestamos/{id}?monto=<valor de la cuota>#registrar-pago`: el ancla baja directo al
+- "Detalle" lleva a `/prestamos/{id}?monto=<valor de la cuota>#registrar-pago`: el ancla baja directo al
   formulario y la plantilla del detalle escribe el monto con `th:value="${param.monto}"`. No hizo falta tocar
   el controlador.
 - `AgendaWebTest` fija la fecha en el 16 nov 2026 y comprueba que la primera tarjeta es la de la fecha más cercana.

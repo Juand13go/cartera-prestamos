@@ -42,11 +42,8 @@
     --mora-texto: #B42318;
     --mora-fondo: #FDECEA;
 
-    /* Agenda del panel: índigo para las acciones de cobro y terracota para el día de hoy. */
-    --acento: #3730A3;         /* botón Cobrar e ícono del recordatorio (blanco encima: 9.9:1) */
-    --acento-oscuro: #312E81;  /* Cobrar al pasar el mouse */
-    --acento-claro: #EEF0FF;   /* fondo del botón del recordatorio */
-    --hoy: #9A3412;            /* cabecera HOY del calendario (blanco encima: 7.3:1) */
+    /* Agenda del panel: terracota solo para la cabecera HOY del calendario (blanco encima: 7.3:1). */
+    --hoy: #9A3412;
 
     --letra-titulos: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --letra-texto: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -260,7 +257,7 @@ section {
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
-/* Botón cuadrado del recordatorio: fondo lavanda y globo índigo. Mismo alto que Cobrar. */
+/* Botón cuadrado del recordatorio: blanco con borde negro; el globo va con borde negro y relleno blanco. */
 .boton.boton-icono {
     display: inline-flex;
     align-items: center;
@@ -268,26 +265,26 @@ section {
     width: 50px;
     height: 50px;
     padding: 0;
+    border: 2px solid var(--texto);
     border-radius: 10px;
-    background: var(--acento-claro);
-    border-color: var(--acento-claro);
-    color: var(--acento);
+    background: var(--superficie);
+    color: var(--texto);
 }
-.boton.boton-icono:hover { background: var(--acento-claro); border-color: var(--acento); }
-/* Cobrar: índigo relleno si el cobro es hoy; los demás días, solo el borde. */
-.cobro .boton.cobrar {
+.boton.boton-icono:hover { background: var(--gris-claro); border-color: var(--texto); }
+/* Detalle: negro relleno si el cobro es hoy; los demás días, blanco con borde negro. */
+.cobro .boton.ir-detalle {
     display: inline-flex;
     align-items: center;
     height: 50px;
     padding: 0 22px;
-    border: 2px solid var(--acento);
+    border: 2px solid var(--texto);
     border-radius: 10px;
-    background: var(--acento);
+    background: var(--texto);
     color: #fff;
 }
-.cobro .boton.cobrar:hover { background: var(--acento-oscuro); border-color: var(--acento-oscuro); }
-.cobro .boton.cobrar.secundario { background: var(--superficie); color: var(--acento); }
-.cobro .boton.cobrar.secundario:hover { background: var(--acento-claro); border-color: var(--acento); }
+.cobro .boton.ir-detalle:hover { background: #333333; border-color: #333333; }
+.cobro .boton.ir-detalle.secundario { background: var(--superficie); color: var(--texto); }
+.cobro .boton.ir-detalle.secundario:hover { background: var(--gris-claro); border-color: var(--texto); }
 
 /* Menos de 600 px: el valor y los botones bajan a un segundo renglón, el valor a la izquierda. */
 @media (max-width: 600px) {

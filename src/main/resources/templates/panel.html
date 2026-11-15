@@ -58,14 +58,15 @@
                        th:href="${enlace}"
                        th:attr="aria-label='Enviar recordatorio por WhatsApp a ' + ${cobro.nombreCliente()},
                                 title='Enviar recordatorio por WhatsApp a ' + ${cobro.nombreCliente()}">
-                        <!-- Ícono de mensaje: un globo de diálogo relleno, del color del texto del botón. -->
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+                        <!-- Ícono de mensaje: un globo de diálogo con borde negro y relleno blanco. -->
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff" stroke="currentColor"
+                             stroke-width="2" stroke-linejoin="round" aria-hidden="true" focusable="false">
                             <path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3z"/>
                         </svg>
                     </a>
-                    <!-- Lleva directo al formulario de pago del préstamo, con el valor de la cuota ya escrito. -->
-                    <a class="boton cobrar" th:classappend="${!cobro.esHoy()} ? 'secundario'"
-                       th:href="@{/prestamos/{id}(id=${cobro.prestamoId()}, monto=${cobro.valorPendiente().toPlainString()})} + '#registrar-pago'">Cobrar</a>
+                    <!-- Lleva al detalle del préstamo, directo al formulario de pago con el valor de la cuota ya escrito. -->
+                    <a class="boton ir-detalle" th:classappend="${!cobro.esHoy()} ? 'secundario'"
+                       th:href="@{/prestamos/{id}(id=${cobro.prestamoId()}, monto=${cobro.valorPendiente().toPlainString()})} + '#registrar-pago'">Detalle</a>
                 </div>
             </li>
         </ul>
