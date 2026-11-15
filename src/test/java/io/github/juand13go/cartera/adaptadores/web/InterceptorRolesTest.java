@@ -30,7 +30,7 @@ import io.github.juand13go.cartera.dominio.modelo.Prestamo;
 @Transactional
 class InterceptorRolesTest {
 
-    private static final UsuarioSesion LAURA = new UsuarioSesion(Rol.CLIENTE, "1000000001", "Laura Gómez (prueba)");
+    private static final UsuarioSesion LUZ_MARINA = new UsuarioSesion(Rol.CLIENTE, "43586217", "Luz Marina Restrepo Arango");
 
     @Autowired
     private MockMvc mvc;
@@ -51,12 +51,12 @@ class InterceptorRolesTest {
         throw new AssertionError("No está el préstamo de prueba");
     }
 
-    private long deLaura() {
-        return idDe("1000000001", LocalDate.of(2026, 8, 10));
+    private long deLuzMarina() {
+        return idDe("43586217", LocalDate.of(2026, 8, 18));
     }
 
-    private long deCarlos() {
-        return idDe("1000000002", LocalDate.of(2026, 7, 5));
+    private long deJhonFredy() {
+        return idDe("71793468", LocalDate.of(2026, 10, 15));
     }
 
     // Sin sesión
@@ -70,12 +70,12 @@ class InterceptorRolesTest {
 
     @Test
     void sinSesionUnPostNoSeEjecuta() throws Exception {
-        long id = deLaura();
+        long id = deLuzMarina();
 
         mvc.perform(post("/prestamos/" + id + "/pagos").param("monto", "160000"))
                 .andExpect(redirectedUrl("/login"));
 
-        assertEquals(3, prestamos.buscarPorId(id).getPagos().tamano());
+        assertEquals(2, prestamos.buscarPorId(id).getPagos().tamano());
     }
 
     @Test
@@ -89,54 +89,54 @@ class InterceptorRolesTest {
 
     @Test
     void elClienteQueEntraAlInicioVaASusPrestamos() throws Exception {
-        mvc.perform(como(LAURA, get("/"))).andExpect(redirectedUrl("/mis-prestamos"));
+        mvc.perform(como(LUZ_MARINA, get("/"))).andExpect(redirectedUrl("/mis-prestamos"));
     }
 
     @Test
     void elClienteNoPuedeVerLasPantallasDelPrestamista() throws Exception {
-        mvc.perform(como(LAURA, get("/clientes"))).andExpect(status().isForbidden());
-        mvc.perform(como(LAURA, get("/clientes/1000000002"))).andExpect(status().isForbidden());
+        mvc.perform(como(LUZ_MARINA, get("/clientes"))).andExpect(status().isForbidden());
+        mvc.perform(como(LUZ_MARINA, get("/clientes/71793468"))).andExpect(status().isForbidden());
         // Ni siquiera la vista de prestamista de su propio préstamo.
-        mvc.perform(como(LAURA, get("/prestamos/" + deLaura()))).andExpect(status().isForbidden());
+        mvc.perform(como(LUZ_MARINA, get("/prestamos/" + deLuzMarina()))).andExpect(status().isForbidden());
     }
 
     @Test
     void elClienteNoPuedeModificarNadaAunqueEnvieElPostDirectamente() throws Exception {
-        long id = deLaura();
+        long id = deLuzMarina();
 
-        mvc.perform(como(LAURA, post("/prestamos/" + id + "/pagos").param("monto", "160000")))
+        mvc.perform(como(LUZ_MARINA, post("/prestamos/" + id + "/pagos").param("monto", "160000")))
                 .andExpect(status().isForbidden());
-        mvc.perform(como(LAURA, post("/prestamos/" + id + "/deshacer"))).andExpect(status().isForbidden());
-        mvc.perform(como(LAURA, post("/clientes").param("cedula", "2000000009"))).andExpect(status().isForbidden());
+        mvc.perform(como(LUZ_MARINA, post("/prestamos/" + id + "/deshacer"))).andExpect(status().isForbidden());
+        mvc.perform(como(LUZ_MARINA, post("/clientes").param("cedula", "2000000009"))).andExpect(status().isForbidden());
 
-        assertEquals(3, prestamos.buscarPorId(id).getPagos().tamano());
+        assertEquals(2, prestamos.buscarPorId(id).getPagos().tamano());
     }
 
     @Test
     void elClienteNoPuedeVerLosPrestamosDeOtroCliente() throws Exception {
-        long carlos = deCarlos();
+        long jhonFredy = deJhonFredy();
 
-        mvc.perform(como(LAURA, get("/mis-prestamos/" + carlos))).andExpect(status().isForbidden());
-        mvc.perform(como(LAURA, get("/mis-prestamos/" + carlos + "/recibos/1"))).andExpect(status().isForbidden());
+        mvc.perform(como(LUZ_MARINA, get("/mis-prestamos/" + jhonFredy))).andExpect(status().isForbidden());
+        mvc.perform(como(LUZ_MARINA, get("/mis-prestamos/" + jhonFredy + "/recibos/1"))).andExpect(status().isForbidden());
     }
 
     @Test
     void unNumeroDePrestamoQueNoExisteOInvalidoTambienSeProhibe() throws Exception {
-        mvc.perform(como(LAURA, get("/mis-prestamos/999999"))).andExpect(status().isForbidden());
-        mvc.perform(como(LAURA, get("/mis-prestamos/abc"))).andExpect(status().isForbidden());
+        mvc.perform(como(LUZ_MARINA, get("/mis-prestamos/999999"))).andExpect(status().isForbidden());
+        mvc.perform(como(LUZ_MARINA, get("/mis-prestamos/abc"))).andExpect(status().isForbidden());
     }
 
     @Test
     void elClienteSiVeSusPropiosPrestamosYPuedeSalir() throws Exception {
-        mvc.perform(como(LAURA, get("/mis-prestamos"))).andExpect(status().isOk());
-        mvc.perform(como(LAURA, get("/mis-prestamos/" + deLaura()))).andExpect(status().isOk());
-        mvc.perform(como(LAURA, get("/mis-prestamos/" + deLaura() + "/recibos/1"))).andExpect(status().isOk());
-        mvc.perform(como(LAURA, post("/salir"))).andExpect(redirectedUrl("/login"));
+        mvc.perform(como(LUZ_MARINA, get("/mis-prestamos"))).andExpect(status().isOk());
+        mvc.perform(como(LUZ_MARINA, get("/mis-prestamos/" + deLuzMarina()))).andExpect(status().isOk());
+        mvc.perform(como(LUZ_MARINA, get("/mis-prestamos/" + deLuzMarina() + "/recibos/1"))).andExpect(status().isOk());
+        mvc.perform(como(LUZ_MARINA, post("/salir"))).andExpect(redirectedUrl("/login"));
     }
 
     @Test
     void unaRutaConJsessionidNoSeBloqueaPorError() throws Exception {
-        mvc.perform(como(LAURA, get("/mis-prestamos;jsessionid=ABC123"))).andExpect(status().isOk());
+        mvc.perform(como(LUZ_MARINA, get("/mis-prestamos;jsessionid=ABC123"))).andExpect(status().isOk());
     }
 
     // Prestamista
@@ -144,7 +144,7 @@ class InterceptorRolesTest {
     @Test
     void elPrestamistaVeTodoMenosElPortalDelCliente() throws Exception {
         mvc.perform(como(Sesiones.PRESTAMISTA, get("/"))).andExpect(status().isOk());
-        mvc.perform(como(Sesiones.PRESTAMISTA, get("/prestamos/" + deCarlos()))).andExpect(status().isOk());
+        mvc.perform(como(Sesiones.PRESTAMISTA, get("/prestamos/" + deJhonFredy()))).andExpect(status().isOk());
         mvc.perform(como(Sesiones.PRESTAMISTA, get("/mis-prestamos"))).andExpect(status().isForbidden());
     }
 }

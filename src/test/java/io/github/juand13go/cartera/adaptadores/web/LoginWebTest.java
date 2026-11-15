@@ -64,28 +64,28 @@ class LoginWebTest {
 
     @Test
     void elClienteEntraConCedulaYPinYVaASusPrestamos() throws Exception {
-        MvcResult resultado = mvc.perform(post("/login").param("identificador", "1000000001").param("clave", "1234"))
+        MvcResult resultado = mvc.perform(post("/login").param("identificador", "43586217").param("clave", "1234"))
                 .andExpect(redirectedUrl("/mis-prestamos"))
                 .andReturn();
 
         UsuarioSesion usuario = usuarioDe(resultado);
         assertEquals(Rol.CLIENTE, usuario.rol());
-        assertEquals("1000000001", usuario.cedula());
+        assertEquals("43586217", usuario.cedula());
     }
 
     @Test
     void conUnPinEquivocadoVuelveAlLoginSinPerderLaCedula() throws Exception {
-        mvc.perform(post("/login").param("identificador", "1000000001").param("clave", "9999"))
+        mvc.perform(post("/login").param("identificador", "43586217").param("clave", "9999"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Usuario o clave incorrectos")))
-                .andExpect(content().string(containsString("value=\"1000000001\"")));
+                .andExpect(content().string(containsString("value=\"43586217\"")));
     }
 
     @Test
     void alEntrarSeDescartaLaSesionAnterior() throws Exception {
         MockHttpSession anterior = new MockHttpSession();
 
-        mvc.perform(post("/login").session(anterior).param("identificador", "1000000001").param("clave", "1234"));
+        mvc.perform(post("/login").session(anterior).param("identificador", "43586217").param("clave", "1234"));
 
         assertTrue(anterior.isInvalid());
     }
@@ -111,7 +111,7 @@ class LoginWebTest {
 
     @Test
     void siYaHaySesionElLoginLlevaAlInicio() throws Exception {
-        mvc.perform(get("/login").sessionAttr(SesionWeb.USUARIO, new UsuarioSesion(Rol.CLIENTE, "1000000001", "Laura")))
+        mvc.perform(get("/login").sessionAttr(SesionWeb.USUARIO, new UsuarioSesion(Rol.CLIENTE, "43586217", "Laura")))
                 .andExpect(redirectedUrl("/mis-prestamos"));
     }
 
@@ -125,7 +125,7 @@ class LoginWebTest {
 
     @Test
     void lasRutasViejasYaNoInicianSesion() throws Exception {
-        MvcResult resultado = mvc.perform(post("/login/cliente").param("cedula", "1000000001").param("pin", "1234"))
+        MvcResult resultado = mvc.perform(post("/login/cliente").param("cedula", "43586217").param("pin", "1234"))
                 .andExpect(redirectedUrl("/login"))
                 .andReturn();
 

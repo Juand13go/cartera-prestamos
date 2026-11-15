@@ -72,10 +72,10 @@ class CrearPrestamoWebTest {
 
     @Test
     void elFormularioTraeLosValoresPorDefectoDelContrato() throws Exception {
-        mvc.perform(get("/prestamos/nuevo").param("cedula", "1000000004"))
+        mvc.perform(get("/prestamos/nuevo").param("cedula", "1037624519"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Nuevo préstamo para")))
-                .andExpect(content().string(containsString("Jorge Castaño (prueba)")))
+                .andExpect(content().string(containsString("Gloria Patricia Cardona Vélez")))
                 .andExpect(content().string(containsString("value=\"CAPITAL_INICIAL\" selected")))
                 .andExpect(content().string(containsString("value=\"MULTAS_PRIMERO\" selected")))
                 .andExpect(content().string(containsString("value=\"SIN_MULTA\" selected")));
@@ -89,51 +89,51 @@ class CrearPrestamoWebTest {
 
     @Test
     void crearUnPrestamoDentroDelCupoLlevaAlDetalle() throws Exception {
-        // Jorge tiene cupo de 2.000.000 y su único préstamo está cerrado.
-        mvc.perform(formulario("1000000004", "1000000"))
+        // Gloria tiene cupo de 8.000.000 y debe 4.000.000.
+        mvc.perform(formulario("1037624519", "1000000"))
                 .andExpect(redirectedUrlPattern("/prestamos/*"));
     }
 
     @Test
     void siSuperaElCupoPideConfirmacion() throws Exception {
-        // Laura tiene cupo de 5.000.000 y ya debe 2.300.000.
-        mvc.perform(formulario("1000000001", "3000000"))
+        // Luz Marina tiene cupo de 5.000.000 y ya debe 2.000.000.
+        mvc.perform(formulario("43586217", "3500000"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Este préstamo supera el cupo del cliente")))
-                .andExpect(content().string(containsString("$2.300.000")))
+                .andExpect(content().string(containsString("$2.000.000")))
                 .andExpect(content().string(containsString("Confirmo que quiero prestar")));
     }
 
     @Test
     void conLaConfirmacionSeCreaAunqueSupereElCupo() throws Exception {
-        mvc.perform(formulario("1000000001", "3000000", "confirmaSobreCupo", "true"))
+        mvc.perform(formulario("43586217", "3500000", "confirmaSobreCupo", "true"))
                 .andExpect(redirectedUrlPattern("/prestamos/*"));
     }
 
     @Test
     void unCapitalMenorQueElMinimoSeRechazaConSuMotivo() throws Exception {
-        mvc.perform(formulario("1000000004", "10000"))
+        mvc.perform(formulario("1037624519", "10000"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("El capital mínimo es 50000")));
     }
 
     @Test
     void unaMultaSinValorSeRechaza() throws Exception {
-        mvc.perform(formulario("1000000004", "1000000", "politicaMora", "MULTA_FIJA_DIARIA"))
+        mvc.perform(formulario("1037624519", "1000000", "politicaMora", "MULTA_FIJA_DIARIA"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Escriba el valor o el porcentaje de la multa")));
     }
 
     @Test
     void unaFechaMalEscritaSeAvisa() throws Exception {
-        mvc.perform(formulario("1000000004", "1000000", "fechaDesembolso", "14/11/2026"))
+        mvc.perform(formulario("1037624519", "1000000", "fechaDesembolso", "14/11/2026"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Revise los campos")));
     }
 
     @Test
     void lasCondicionesElegidasQuedanEnElContratoGuardado() throws Exception {
-        String destino = mvc.perform(formulario("1000000004", "1000000",
+        String destino = mvc.perform(formulario("1037624519", "1000000",
                         "frecuencia", "SEMANAL", "diaSemana", "FRIDAY"))
                 .andReturn().getResponse().getRedirectedUrl();
 

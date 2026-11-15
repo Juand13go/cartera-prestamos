@@ -16,7 +16,8 @@ import org.springframework.web.context.WebApplicationContext;
 
 /**
  * La agenda del panel dibujada como tarjetas, con los datos de prueba y la fecha fija en el lunes 16 nov 2026.
- * Ese día hay dos cobros: Marta (quincenal, vence hoy) y Laura (semanal, vence el martes 17).
+ * Ese día hay tres cobros: Gloria (quincenal, vence hoy), Luz Marina (mensual, miércoles 18)
+ * y Jhon Fredy (semanal, jueves 19).
  */
 @SpringBootTest(properties = "app.fecha-simulada=2026-11-16")
 @AutoConfigureMockMvc
@@ -43,14 +44,16 @@ class AgendaWebTest {
     void laPrimeraTarjetaEsLaDeFechaMasCercana() throws Exception {
         String agenda = agenda();
 
-        int marta = agenda.indexOf("Marta Ospina (prueba)");
-        int laura = agenda.indexOf("Laura Gómez (prueba)");
-        assertTrue(marta >= 0 && laura >= 0, "deben salir los dos cobros");
-        assertTrue(marta < laura, "el cobro de hoy (Marta) va antes que el de mañana (Laura)");
-        // La primera cabecera de calendario es HOY; la segunda, el martes.
+        int gloria = agenda.indexOf("Gloria Patricia Cardona Vélez");
+        int luzMarina = agenda.indexOf("Luz Marina Restrepo Arango");
+        int jhon = agenda.indexOf("Jhon Fredy Zapata Muñoz");
+        assertTrue(gloria >= 0 && luzMarina >= 0 && jhon >= 0, "deben salir los tres cobros");
+        assertTrue(gloria < luzMarina && luzMarina < jhon, "van en orden de fecha: lunes, miércoles, jueves");
+        // Las cabeceras de calendario: HOY, luego el miércoles, luego el jueves.
         int hoy = agenda.indexOf(">HOY<");
-        int martes = agenda.indexOf(">MAR<");
-        assertTrue(hoy >= 0 && hoy < martes);
+        int miercoles = agenda.indexOf(">MIÉ<");
+        int jueves = agenda.indexOf(">JUE<");
+        assertTrue(hoy >= 0 && hoy < miercoles && miercoles < jueves);
     }
 
     @Test
@@ -67,10 +70,10 @@ class AgendaWebTest {
         String agenda = agenda();
 
         assertTrue(agenda.contains("https://wa.me/57"));
-        assertTrue(agenda.contains("?text=Hola%20Marta%20Ospina%20%28prueba%29%2C%20te%20recuerdo%20el%20pago%20de%20"));
+        assertTrue(agenda.contains("?text=Hola%20Gloria%20Patricia%20Cardona%20V%C3%A9lez%2C%20te%20recuerdo%20el%20pago%20de%20"));
         assertTrue(agenda.contains("target=\"_blank\""));
-        assertTrue(agenda.contains("aria-label=\"Enviar recordatorio por WhatsApp a Marta Ospina (prueba)\""));
-        assertTrue(agenda.contains("title=\"Enviar recordatorio por WhatsApp a Marta Ospina (prueba)\""));
+        assertTrue(agenda.contains("aria-label=\"Enviar recordatorio por WhatsApp a Gloria Patricia Cardona Vélez\""));
+        assertTrue(agenda.contains("title=\"Enviar recordatorio por WhatsApp a Gloria Patricia Cardona Vélez\""));
     }
 
     @Test

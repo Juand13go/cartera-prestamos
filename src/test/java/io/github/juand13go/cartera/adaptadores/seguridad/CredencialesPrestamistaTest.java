@@ -22,6 +22,6 @@ class CredencialesPrestamistaTest {
 
     @Test
     void unClienteDePruebaEntraConPin1234() {
-        assertTrue(iniciarSesion.entrar("1000000001", "1234").esCliente());
+        assertTrue(iniciarSesion.entrar("43586217", "1234").esCliente());
     }
 }

@@ -43,14 +43,14 @@ class ClientesControladorTest {
     void laListaMuestraLosClientesDePrueba() throws Exception {
         mvc.perform(get("/clientes"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Laura Gómez (prueba)")))
-                .andExpect(content().string(containsString("Jorge Castaño (prueba)")));
+                .andExpect(content().string(containsString("Luz Marina Restrepo Arango")))
+                .andExpect(content().string(containsString("Gloria Patricia Cardona Vélez")));
     }
 
     @Test
     void buscarUnaCedulaQueExisteLlevaASuFicha() throws Exception {
-        mvc.perform(get("/clientes").param("cedula", "1000000002"))
-                .andExpect(redirectedUrl("/clientes/1000000002"));
+        mvc.perform(get("/clientes").param("cedula", "71793468"))
+                .andExpect(redirectedUrl("/clientes/71793468"));
     }
 
     @Test
@@ -62,12 +62,12 @@ class ClientesControladorTest {
 
     @Test
     void laFichaMuestraLosDatosLasNotasYLosPrestamos() throws Exception {
-        mvc.perform(get("/clientes/1000000002"))
+        mvc.perform(get("/clientes/71793468"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Carlos Mejía (prueba)")))
-                .andExpect(content().string(containsString("Se atrasa; llamar antes del 5.")))
+                .andExpect(content().string(containsString("Jhon Fredy Zapata Muñoz")))
+                .andExpect(content().string(containsString("Se atrasa; llamarlo el miércoles antes del cobro.")))
                 .andExpect(content().string(containsString("Nuevo préstamo")))
-                .andExpect(content().string(containsString("$1.500.000")));
+                .andExpect(content().string(containsString("$1.000.000")));
     }
 
     @Test

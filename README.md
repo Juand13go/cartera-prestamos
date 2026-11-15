@@ -35,10 +35,11 @@ cliente a partir de la cuenta; nadie escoge su rol.
 | Rol | Entra con | Qué se ve |
 |---|---|---|
 | Prestamista | `prestamista` / `cartera2026` | Todo: panel, clientes, préstamos, pagos, recibos |
-| Cliente Laura | cédula `1000000001`, PIN `1234` | Dos préstamos al día (uno mensual y uno semanal) |
-| Cliente Carlos | cédula `1000000002`, PIN `1234` | Préstamo en mora, con multas |
-| Cliente Marta | cédula `1000000003`, PIN `1234` | Quincenal, capital vigente, abonó a capital; una cuota que caía domingo pasa al lunes |
-| Cliente Jorge | cédula `1000000004`, PIN `1234` | Préstamo cerrado por cancelación anticipada |
+| Cliente Luz Marina Restrepo Arango | cédula `43586217`, PIN `1234` | Mensual al día; cobro el miércoles 18 nov |
+| Cliente Jhon Fredy Zapata Muñoz | cédula `71793468`, PIN `1234` | Semanal en mora (no pagó el 5 ni el 12 nov), con multas; cobro el jueves 19 nov |
+| Cliente Gloria Patricia Cardona Vélez | cédula `1037624519`, PIN `1234` | Quincenal, capital vigente, abonó a capital; la cuota del domingo 15 nov pasa al lunes 16 |
+
+Los tres tienen un cobro en la semana del 14 al 21 de noviembre de 2026, así que aparecen en la agenda del panel.
 
 El cliente solo puede **ver** sus propios préstamos; cualquier otra cosa la bloquea el servidor (403).
 

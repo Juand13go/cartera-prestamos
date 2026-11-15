@@ -48,11 +48,11 @@ class PanelControladorTest {
     }
 
     @Test
-    void carlosApareceEnLaListaDeMora() throws Exception {
-        // Carlos dejó de pagar en octubre de 2026: aparece en mora cualquier día después de esa fecha.
+    void jhonFredyApareceEnLaListaDeMora() throws Exception {
+        // Jhon Fredy no pagó la cuota del 5 nov 2026: aparece en mora cualquier día después de esa fecha.
         mvc.perform(get("/"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Carlos Mejía (prueba)")));
+                .andExpect(content().string(containsString("Jhon Fredy Zapata Muñoz")));
     }
 
     @Test

@@ -611,11 +611,12 @@ Para un solo prestamista (decenas o cientos de préstamos de máximo 24 cuotas) 
 
 | Cédula | Cliente | Préstamo | Estado a mediados de noviembre de 2026 |
 |---|---|---|---|
-| 1000000001 | Laura Gómez | 2.000.000 al 8 % mensual | al día |
-| 1000000001 | Laura Gómez | 300.000 al 3 % semanal (martes) | al día |
-| 1000000002 | Carlos Mejía | 1.500.000 al 10 % mensual, multa 2.000/día | en mora (cuotas 5 oct y 5 nov) |
-| 1000000003 | Marta Ospina | 5.000.000 al 3 % quincenal, capital vigente, sin domingos | abonó a capital; cuota del 15 nov pasa al 16 |
-| 1000000004 | Jorge Castaño | 1.000.000 al 10 % mensual, interés por días | cerrado por cancelación anticipada |
+| 43586217 | Luz Marina Restrepo Arango | 2.000.000 al 8 % mensual, el día 18 | al día; cobro de 160.000 el miércoles 18 nov |
+| 71793468 | Jhon Fredy Zapata Muñoz | 1.000.000 al 4 % semanal (jueves), multa 2.000/día | en mora (cuotas 5 y 12 nov); cobro el jueves 19 nov |
+| 1037624519 | Gloria Patricia Cardona Vélez | 5.000.000 al 3 % quincenal, capital vigente, sin domingos | abonó 1.000.000 a capital; cuota de 120.000 del 15 nov pasa al lunes 16 |
+
+Los tres tienen un cobro en la semana del 14 al 21 de noviembre de 2026: los tres salen en la agenda del panel.
+Los datos son inventados, aunque los nombres y cédulas tienen forma real.
 
 `DatosDePruebaTest` comprueba estos estados a una fecha fija.
 
@@ -751,12 +752,12 @@ dentro de `th:href` por seguridad.
 
 ### Cómo hacer la demo
 
-1. `./mvnw spring-boot:run` → panel: Marta y Laura en la agenda ("Esta semana"); Carlos en mora (con multas).
-2. Clientes → buscar `1000000002` → ficha de Carlos con sus notas internas.
-3. Préstamo de Carlos → cronograma con cuotas "En mora" y multas → **Condonar** la multa de una cuota.
+1. `./mvnw spring-boot:run` → panel: Gloria, Luz Marina y Jhon Fredy en la agenda ("Esta semana"); Jhon Fredy también en mora (con multas).
+2. Clientes → buscar `71793468` → ficha de Jhon Fredy con sus notas internas.
+3. Préstamo de Jhon Fredy → cronograma con cuotas "En mora" y multas → **Condonar** la multa de una cuota.
 4. **Registrar pago** → recibo → **Enviar por WhatsApp** (abre el mensaje ya escrito).
 5. Volver al préstamo → **Deshacer el último pago** → todo vuelve como estaba (la pila en acción).
-6. Crear un préstamo grande a Laura → aparece la advertencia de cupo → marcar la casilla → se crea.
+6. Crear un préstamo de 3.500.000 a Luz Marina (cupo 5.000.000, debe 2.000.000) → aparece la advertencia de cupo → marcar la casilla → se crea.
 7. Para mostrar cómo crece la mora: `FECHA_SIMULADA=2027-01-20 ./mvnw spring-boot:run`.
 
 ### Preguntas que podría hacer el profesor
@@ -804,7 +805,7 @@ Pruebas al cerrar el hito: 327 (42 nuevas). *(330 después de unificar el login 
 | Rol | Cómo entra | Datos de prueba |
 |---|---|---|
 | Prestamista | usuario + contraseña | `prestamista` / `cartera2026` |
-| Cliente | cédula + PIN | `1000000001` a `1000000004`, PIN `1234` |
+| Cliente | cédula + PIN | `43586217`, `71793468` o `1037624519`, PIN `1234` |
 
 ### Un solo formulario: el sistema deduce el rol
 

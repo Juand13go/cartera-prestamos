@@ -50,9 +50,9 @@ class ReciboWebTest {
     @Autowired
     private Textos textos;
 
-    private long laura() {
-        for (Prestamo prestamo : prestamos.listarPorCliente("1000000001")) {
-            if (prestamo.getContrato().getFechaDesembolso().equals(LocalDate.of(2026, 8, 10))) {
+    private long luzMarina() {
+        for (Prestamo prestamo : prestamos.listarPorCliente("43586217")) {
+            if (prestamo.getContrato().getFechaDesembolso().equals(LocalDate.of(2026, 8, 18))) {
                 return prestamo.getId();
             }
         }
@@ -61,20 +61,20 @@ class ReciboWebTest {
 
     @Test
     void elReciboMuestraElPagoSuDesgloseYLosBotones() throws Exception {
-        mvc.perform(get("/prestamos/" + laura() + "/recibos/1"))
+        mvc.perform(get("/prestamos/" + luzMarina() + "/recibos/1"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Recibo N°")))
-                .andExpect(content().string(containsString("Laura Gómez (prueba)")))
-                .andExpect(content().string(containsString("10/09/2026 09:15")))
+                .andExpect(content().string(containsString("Luz Marina Restrepo Arango")))
+                .andExpect(content().string(containsString("18/09/2026 09:20")))
                 .andExpect(content().string(containsString("$160.000")))
                 .andExpect(content().string(containsString("$2.000.000")))
                 .andExpect(content().string(containsString("Imprimir")))
-                .andExpect(content().string(containsString("https://wa.me/573000000001?text=")));
+                .andExpect(content().string(containsString("https://wa.me/573127845930?text=")));
     }
 
     @Test
     void despuesDePagarSeVeElReciboDeEsePago() throws Exception {
-        long id = laura();
+        long id = luzMarina();
         mvc.perform(post("/prestamos/" + id + "/pagos").param("monto", "123000"));
 
         mvc.perform(get("/prestamos/" + id + "/recibos/ultimo"))
@@ -84,7 +84,7 @@ class ReciboWebTest {
 
     @Test
     void unReciboQueNoExisteVuelveAlDetalleConUnMensaje() throws Exception {
-        long id = laura();
+        long id = luzMarina();
 
         mvc.perform(get("/prestamos/" + id + "/recibos/99"))
                 .andExpect(redirectedUrl("/prestamos/" + id))
@@ -93,9 +93,9 @@ class ReciboWebTest {
 
     @Test
     void elEnlaceDeWhatsappLlevaElTextoDelReciboCodificado() {
-        String enlace = textos.enlaceWhatsapp(generarRecibo.ejecutar(laura(), 1));
+        String enlace = textos.enlaceWhatsapp(generarRecibo.ejecutar(luzMarina(), 1));
 
-        assertTrue(enlace.startsWith("https://wa.me/573000000001?text=Recibo%20N%C2%B0%20"));
+        assertTrue(enlace.startsWith("https://wa.me/573127845930?text=Recibo%20N%C2%B0%20"));
         assertTrue(enlace.contains("%0A"), "los saltos de línea van como %0A");
         assertFalse(enlace.contains(" "), "no puede tener espacios sin codificar");
         assertFalse(enlace.contains("+"), "los espacios van como %20, no como +");

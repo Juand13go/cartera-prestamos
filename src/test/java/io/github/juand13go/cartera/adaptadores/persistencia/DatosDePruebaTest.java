@@ -58,8 +58,8 @@ class DatosDePruebaTest {
     }
 
     @Test
-    void hayCuatroClientesDePruebaYTodosEntranConPin1234() {
-        for (String cedula : new String[] {"1000000001", "1000000002", "1000000003", "1000000004"}) {
+    void hayTresClientesDePruebaYTodosEntranConPin1234() {
+        for (String cedula : new String[] {"43586217", "71793468", "1037624519"}) {
             Cliente cliente = clientes.buscarPorCedula(cedula);
             assertNotNull(cliente, "Falta el cliente " + cedula);
             assertTrue(cifrador.coincide("1234", cliente.getPinCifrado()));
@@ -67,50 +67,36 @@ class DatosDePruebaTest {
     }
 
     @Test
-    void elPrimerPrestamoDeLauraEstaAlDia() {
-        Prestamo prestamo = prestamoDe("1000000001", LocalDate.of(2026, 8, 10));
+    void luzMarinaEstaAlDiaYLeTocaPagarElMiercoles18() {
+        Prestamo prestamo = prestamoDe("43586217", LocalDate.of(2026, 8, 18));
 
         assertFalse(tieneCuotasEnMora(prestamo));
-        assertEquals(3, prestamo.getPagos().tamano());
-        assertEquals(LocalDate.of(2026, 12, 10), prestamo.getCronograma().ultimo().getFechaVencimiento());
+        assertEquals(2, prestamo.getPagos().tamano());
+        Cuota actual = prestamo.getCronograma().ultimo();
+        assertEquals(LocalDate.of(2026, 11, 18), actual.getFechaVencimiento());
+        assertEquals(0, new BigDecimal("160000").compareTo(actual.getValor()));
     }
 
     @Test
-    void elPrestamoSemanalDeLauraVenceLosMartes() {
-        Prestamo prestamo = prestamoDe("1000000001", LocalDate.of(2026, 11, 3));
-
-        assertFalse(tieneCuotasEnMora(prestamo));
-        assertEquals(LocalDate.of(2026, 11, 17), prestamo.getCronograma().ultimo().getFechaVencimiento());
-    }
-
-    @Test
-    void carlosEstaEnMoraConMultas() {
-        Prestamo prestamo = prestamoDe("1000000002", LocalDate.of(2026, 7, 5));
+    void jhonFredyEstaEnMoraYLeTocaPagarElJueves19() {
+        Prestamo prestamo = prestamoDe("71793468", LocalDate.of(2026, 10, 15));
 
         assertTrue(tieneCuotasEnMora(prestamo));
-        // Cuota del 5 oct: 40 días de atraso − 2 de gracia = 38 × 2.000 = 76.000.
-        Cuota octubre = prestamo.getCronograma().obtener(2);
-        assertEquals(LocalDate.of(2026, 10, 5), octubre.getFechaVencimiento());
-        assertEquals(0, new BigDecimal("76000").compareTo(prestamo.saldoMulta(octubre, HOY)));
+        // Cuota del 5 nov: 9 días de atraso − 2 de gracia = 7 × 2.000 = 14.000.
+        Cuota cinco = prestamo.getCronograma().obtener(2);
+        assertEquals(LocalDate.of(2026, 11, 5), cinco.getFechaVencimiento());
+        assertEquals(0, new BigDecimal("14000").compareTo(prestamo.saldoMulta(cinco, HOY)));
+        assertEquals(LocalDate.of(2026, 11, 19), prestamo.getCronograma().ultimo().getFechaVencimiento());
     }
 
     @Test
-    void martaAbonoACapitalYSuCuotaQueCaeDomingoPasaAlLunes() {
-        Prestamo prestamo = prestamoDe("1000000003", LocalDate.of(2026, 9, 15));
+    void gloriaAbonoACapitalYSuCuotaQueCaeDomingoPasaAlLunes16() {
+        Prestamo prestamo = prestamoDe("1037624519", LocalDate.of(2026, 9, 30));
 
         assertEquals(0, new BigDecimal("4000000").compareTo(prestamo.getCapitalPendiente()));
         Cuota actual = prestamo.getCronograma().ultimo();
         assertEquals(LocalDate.of(2026, 11, 16), actual.getFechaVencimiento());
         assertEquals(0, new BigDecimal("120000").compareTo(actual.getValor()));
         assertFalse(tieneCuotasEnMora(prestamo));
-    }
-
-    @Test
-    void elPrestamoDeJorgeEstaCerradoPorCancelacionAnticipada() {
-        Prestamo prestamo = prestamoDe("1000000004", LocalDate.of(2026, 6, 20));
-
-        assertTrue(prestamo.estaCerrado());
-        assertTrue(prestamo.getPagos().verTope().isCancelacion());
-        assertEquals(0, new BigDecimal("1038710").compareTo(prestamo.getPagos().verTope().getMonto()));
     }
 }

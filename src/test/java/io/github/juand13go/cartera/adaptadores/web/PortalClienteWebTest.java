@@ -20,12 +20,12 @@ import io.github.juand13go.cartera.aplicacion.UsuarioSesion;
 import io.github.juand13go.cartera.aplicacion.puertos.RepositorioPrestamos;
 import io.github.juand13go.cartera.dominio.modelo.Prestamo;
 
-/** El portal visto por Laura (cédula 1000000001), que tiene dos préstamos de prueba. */
+/** El portal visto por Luz Marina (cédula 43586217), que tiene un préstamo mensual de prueba. */
 @SpringBootTest
 @AutoConfigureMockMvc
 class PortalClienteWebTest {
 
-    private static final UsuarioSesion LAURA = new UsuarioSesion(Rol.CLIENTE, "1000000001", "Laura Gómez (prueba)");
+    private static final UsuarioSesion LUZ_MARINA = new UsuarioSesion(Rol.CLIENTE, "43586217", "Luz Marina Restrepo Arango");
 
     @Autowired
     private MockMvc mvc;
@@ -33,13 +33,13 @@ class PortalClienteWebTest {
     @Autowired
     private RepositorioPrestamos prestamos;
 
-    private static MockHttpServletRequestBuilder comoLaura(MockHttpServletRequestBuilder peticion) {
-        return peticion.sessionAttr(SesionWeb.USUARIO, LAURA);
+    private static MockHttpServletRequestBuilder comoLuzMarina(MockHttpServletRequestBuilder peticion) {
+        return peticion.sessionAttr(SesionWeb.USUARIO, LUZ_MARINA);
     }
 
-    private long prestamoMensualDeLaura() {
-        for (Prestamo prestamo : prestamos.listarPorCliente("1000000001")) {
-            if (prestamo.getContrato().getFechaDesembolso().equals(LocalDate.of(2026, 8, 10))) {
+    private long prestamoDeLuzMarina() {
+        for (Prestamo prestamo : prestamos.listarPorCliente("43586217")) {
+            if (prestamo.getContrato().getFechaDesembolso().equals(LocalDate.of(2026, 8, 18))) {
                 return prestamo.getId();
             }
         }
@@ -47,21 +47,20 @@ class PortalClienteWebTest {
     }
 
     @Test
-    void laListaMuestraSusDosPrestamosConProgresoYProximoCobro() throws Exception {
-        mvc.perform(comoLaura(get("/mis-prestamos")))
+    void laListaMuestraSuPrestamoConProgresoYProximoCobro() throws Exception {
+        mvc.perform(comoLuzMarina(get("/mis-prestamos")))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("por $2.000.000")))
-                .andExpect(content().string(containsString("por $300.000")))
                 .andExpect(content().string(containsString("<progress")))
                 .andExpect(content().string(containsString("Próxima fecha de cobro")))
                 .andExpect(content().string(containsString("Próximo pago")))
                 .andExpect(content().string(containsString("Para estar al día hoy")))
-                .andExpect(content().string(not(containsString("Carlos"))));
+                .andExpect(content().string(not(containsString("Jhon Fredy"))));
     }
 
     @Test
     void elDetalleEsDeSoloLecturaYTraeElSimulador() throws Exception {
-        mvc.perform(comoLaura(get("/mis-prestamos/" + prestamoMensualDeLaura())))
+        mvc.perform(comoLuzMarina(get("/mis-prestamos/" + prestamoDeLuzMarina())))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Simulador")))
                 .andExpect(content().string(containsString("Mis pagos")))
@@ -72,7 +71,7 @@ class PortalClienteWebTest {
 
     @Test
     void elSimuladorMuestraElNuevoCapital() throws Exception {
-        mvc.perform(comoLaura(get("/mis-prestamos/" + prestamoMensualDeLaura()).param("abono", "2000000")))
+        mvc.perform(comoLuzMarina(get("/mis-prestamos/" + prestamoDeLuzMarina()).param("abono", "2000000")))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Capital: antes → después")))
                 .andExpect(content().string(containsString("$2.000.000 →")))
@@ -82,16 +81,16 @@ class PortalClienteWebTest {
 
     @Test
     void unAbonoQueNoEsNumeroSeAvisa() throws Exception {
-        mvc.perform(comoLaura(get("/mis-prestamos/" + prestamoMensualDeLaura()).param("abono", "mucho")))
+        mvc.perform(comoLuzMarina(get("/mis-prestamos/" + prestamoDeLuzMarina()).param("abono", "mucho")))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Escriba el abono en pesos")));
     }
 
     @Test
     void veSusRecibosSinElBotonDeWhatsapp() throws Exception {
-        long id = prestamoMensualDeLaura();
+        long id = prestamoDeLuzMarina();
 
-        mvc.perform(comoLaura(get("/mis-prestamos/" + id + "/recibos/1")))
+        mvc.perform(comoLuzMarina(get("/mis-prestamos/" + id + "/recibos/1")))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Recibo N°")))
                 .andExpect(content().string(containsString("href=\"/mis-prestamos/" + id + "\"")))

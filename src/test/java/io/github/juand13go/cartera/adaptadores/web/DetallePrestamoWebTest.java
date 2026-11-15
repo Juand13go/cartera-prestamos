@@ -54,21 +54,25 @@ class DetallePrestamoWebTest {
         throw new AssertionError("No está el préstamo de prueba");
     }
 
-    private long laura() {
-        return idDe("1000000001", LocalDate.of(2026, 8, 10));
+    private long luzMarina() {
+        return idDe("43586217", LocalDate.of(2026, 8, 18));
     }
 
-    private long carlos() {
-        return idDe("1000000002", LocalDate.of(2026, 7, 5));
+    private long gloria() {
+        return idDe("1037624519", LocalDate.of(2026, 9, 30));
+    }
+
+    private long jhonFredy() {
+        return idDe("71793468", LocalDate.of(2026, 10, 15));
     }
 
     @Test
     void elDetalleMuestraContratoCronogramaPagosYAcciones() throws Exception {
-        mvc.perform(get("/prestamos/" + carlos()))
+        mvc.perform(get("/prestamos/" + jhonFredy()))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Carlos Mejía (prueba)")))
+                .andExpect(content().string(containsString("Jhon Fredy Zapata Muñoz")))
                 .andExpect(content().string(containsString("$2.000 por día de atraso, 2 días de gracia")))
-                .andExpect(content().string(containsString("Mensual, el día 5")))
+                .andExpect(content().string(containsString("Semanal, los jueves")))
                 .andExpect(content().string(containsString("En mora")))
                 .andExpect(content().string(containsString("Condonar")))
                 .andExpect(content().string(containsString("Registrar pago")))
@@ -86,18 +90,18 @@ class DetallePrestamoWebTest {
 
     @Test
     void registrarUnPagoLlevaAlReciboYQuedaGuardado() throws Exception {
-        long id = laura();
+        long id = luzMarina();
 
         mvc.perform(post("/prestamos/" + id + "/pagos").param("monto", "160000"))
                 .andExpect(redirectedUrl("/prestamos/" + id + "/recibos/ultimo"))
                 .andExpect(flash().attribute("exito", "Pago de $160.000 registrado."));
 
-        assertEquals(4, prestamos.buscarPorId(id).getPagos().tamano());
+        assertEquals(3, prestamos.buscarPorId(id).getPagos().tamano());
     }
 
     @Test
     void unMontoQueNoEsNumeroVuelveAlDetalleConUnMensaje() throws Exception {
-        long id = laura();
+        long id = luzMarina();
 
         mvc.perform(post("/prestamos/" + id + "/pagos").param("monto", "mucho"))
                 .andExpect(redirectedUrl("/prestamos/" + id))
@@ -106,45 +110,50 @@ class DetallePrestamoWebTest {
 
     @Test
     void deshacerQuitaElUltimoPago() throws Exception {
-        long id = laura();
+        long id = luzMarina();
 
         mvc.perform(post("/prestamos/" + id + "/deshacer"))
                 .andExpect(redirectedUrl("/prestamos/" + id))
-                .andExpect(flash().attribute("exito", "Se deshizo el pago de $160.000 del 10/11/2026."));
+                .andExpect(flash().attribute("exito", "Se deshizo el pago de $160.000 del 18/10/2026."));
 
-        assertEquals(2, prestamos.buscarPorId(id).getPagos().tamano());
+        assertEquals(1, prestamos.buscarPorId(id).getPagos().tamano());
     }
 
     @Test
     void condonarLaMultaDeUnaCuotaQuedaGuardado() throws Exception {
-        long id = carlos();
+        long id = jhonFredy();
 
         mvc.perform(post("/prestamos/" + id + "/cuotas/3/condonar"))
                 .andExpect(redirectedUrl("/prestamos/" + id))
                 .andExpect(flash().attribute("exito", "Se condonó la multa de la cuota 3."));
 
-        assertTrue(prestamos.buscarPorId(id).getCronograma().obtener(2).estaMultaCondonada());
+        // Recién cargado, el cronograma llega hasta el último pago; se extiende al 14 nov para ver la cuota 3 (5 nov).
+        Prestamo guardado = prestamos.buscarPorId(id);
+        guardado.actualizarCronograma(LocalDate.of(2026, 11, 14));
+        assertTrue(guardado.getCronograma().obtener(2).estaMultaCondonada());
     }
 
     @Test
     void cancelarCierraElPrestamoYLlevaAlRecibo() throws Exception {
-        long marta = idDe("1000000003", LocalDate.of(2026, 9, 15));
+        long gloria = gloria();
 
-        mvc.perform(post("/prestamos/" + marta + "/cancelar"))
-                .andExpect(redirectedUrl("/prestamos/" + marta + "/recibos/ultimo"));
+        mvc.perform(post("/prestamos/" + gloria + "/cancelar"))
+                .andExpect(redirectedUrl("/prestamos/" + gloria + "/recibos/ultimo"));
 
-        assertTrue(prestamos.buscarPorId(marta).estaCerrado());
+        assertTrue(prestamos.buscarPorId(gloria).estaCerrado());
     }
 
     @Test
     void unPrestamoCerradoNoMuestraAccionesYNoSePuedeCancelar() throws Exception {
-        long jorge = idDe("1000000004", LocalDate.of(2026, 6, 20));
+        // Ningún préstamo de prueba está cerrado: se cancela el de Gloria y luego se intenta otra vez.
+        long gloria = gloria();
+        mvc.perform(post("/prestamos/" + gloria + "/cancelar"));
 
-        mvc.perform(get("/prestamos/" + jorge))
+        mvc.perform(get("/prestamos/" + gloria))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("cancelación")));
-        mvc.perform(post("/prestamos/" + jorge + "/cancelar"))
-                .andExpect(redirectedUrl("/prestamos/" + jorge))
+        mvc.perform(post("/prestamos/" + gloria + "/cancelar"))
+                .andExpect(redirectedUrl("/prestamos/" + gloria))
                 .andExpect(flash().attribute("error", "El préstamo ya está cerrado"));
     }
 }
