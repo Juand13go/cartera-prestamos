@@ -10,12 +10,14 @@ import java.time.format.DateTimeFormatter;
 
 import org.springframework.stereotype.Component;
 
+import io.github.juand13go.cartera.aplicacion.CobroAgendado;
 import io.github.juand13go.cartera.dominio.estructuras.ListaDoble;
 import io.github.juand13go.cartera.dominio.modelo.EstadoCuota;
 import io.github.juand13go.cartera.dominio.modelo.Pago;
 import io.github.juand13go.cartera.dominio.modelo.Recibo;
 import io.github.juand13go.cartera.dominio.politicas.Frecuencia;
 import io.github.juand13go.cartera.dominio.politicas.FrecuenciaMensual;
+import io.github.juand13go.cartera.dominio.politicas.FrecuenciaQuincenal;
 import io.github.juand13go.cartera.dominio.politicas.FrecuenciaSemanal;
 import io.github.juand13go.cartera.dominio.politicas.MultaFijaDiaria;
 import io.github.juand13go.cartera.dominio.politicas.PoliticaMora;
@@ -97,13 +99,56 @@ public class Textos {
                 + "Saldo restante: " + pesos(recibo.getSaldoRestante());
     }
 
+    /** Enlace de WhatsApp con el texto del recibo. */
+    public String enlaceWhatsapp(Recibo recibo) {
+        return enlaceWhatsapp(recibo.getCliente().getTelefono(), textoRecibo(recibo));
+    }
+
+    // ---------- Agenda del panel ----------
+
+    /** Cabecera del calendario de la tarjeta: "HOY" o el día de la semana abreviado (LUN, MAR, MIÉ...). */
+    public String diaCalendario(CobroAgendado cobro) {
+        if (cobro.esHoy()) {
+            return "HOY";
+        }
+        return switch (cobro.fecha().getDayOfWeek()) {
+            case MONDAY -> "LUN";
+            case TUESDAY -> "MAR";
+            case WEDNESDAY -> "MIÉ";
+            case THURSDAY -> "JUE";
+            case FRIDAY -> "VIE";
+            case SATURDAY -> "SÁB";
+            case SUNDAY -> "DOM";
+        };
+    }
+
+    /** "Préstamo #4 · cuota 4", y " · semanal" o " · quincenal" si no es mensual. */
+    public String detalleCobro(CobroAgendado cobro) {
+        String texto = "Préstamo #" + cobro.prestamoId() + " · cuota " + cobro.numeroCuota();
+        if (cobro.frecuencia() instanceof FrecuenciaSemanal) {
+            return texto + " · semanal";
+        }
+        if (cobro.frecuencia() instanceof FrecuenciaQuincenal) {
+            return texto + " · quincenal";
+        }
+        return texto;
+    }
+
+    /** Recordatorio corto por WhatsApp para un cobro de la agenda. */
+    public String enlaceRecordatorio(CobroAgendado cobro) {
+        String texto = "Hola " + cobro.nombreCliente() + ", te recuerdo el pago de " + pesos(cobro.valorPendiente())
+                + " del préstamo #" + cobro.prestamoId() + ", cuota " + cobro.numeroCuota()
+                + ", que vence el " + cobro.fecha().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ".";
+        return enlaceWhatsapp(cobro.telefono(), texto);
+    }
+
     /**
-     * https://wa.me/57<celular>?text=<recibo>. El texto se codifica para URL (espacios, tildes y saltos de línea
+     * https://wa.me/57<celular>?text=<texto>. El texto se codifica para URL (espacios, tildes y saltos de línea
      * se vuelven códigos como %20). URLEncoder pone "+" en los espacios; se cambian por %20, que WhatsApp entiende siempre.
      */
-    public String enlaceWhatsapp(Recibo recibo) {
-        String texto = URLEncoder.encode(textoRecibo(recibo), StandardCharsets.UTF_8).replace("+", "%20");
-        return "https://wa.me/57" + recibo.getCliente().getTelefono() + "?text=" + texto;
+    private static String enlaceWhatsapp(String telefono, String texto) {
+        String codificado = URLEncoder.encode(texto, StandardCharsets.UTF_8).replace("+", "%20");
+        return "https://wa.me/57" + telefono + "?text=" + codificado;
     }
 
     private static String diaDeLaSemana(DayOfWeek dia) {

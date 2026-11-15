@@ -36,11 +36,13 @@
         </div>
     </div>
 
-    <section class="no-imprimir" th:unless="${prestamo.estaCerrado()}">
+    <!-- id para llegar directo desde el botón "Cobrar" de la agenda (/prestamos/4?monto=160000#registrar-pago). -->
+    <section id="registrar-pago" class="no-imprimir" th:unless="${prestamo.estaCerrado()}">
         <h2>Registrar pago</h2>
         <p class="nota">El pago es al préstamo: el sistema lo reparte según el orden de imputación del contrato.</p>
         <form class="en-linea" th:action="@{/prestamos/{id}/pagos(id=${prestamo.id})}" method="post">
-            <input type="number" name="monto" min="1" step="1" placeholder="Monto en pesos" aria-label="Monto en pesos" required>
+            <input type="number" name="monto" min="1" step="1" placeholder="Monto en pesos" aria-label="Monto en pesos" required
+                   th:value="${param.monto}">
             <button type="submit">Registrar pago</button>
         </form>
         <form class="cancelar-todo" th:action="@{/prestamos/{id}/cancelar(id=${prestamo.id})}" method="post"

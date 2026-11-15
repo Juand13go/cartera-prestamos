@@ -33,7 +33,7 @@ class PanelControladorTest {
     void elPanelMuestraLaAgendaYLaMora() throws Exception {
         mvc.perform(get("/"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Agenda de cobros")))
+                .andExpect(content().string(containsString("Esta semana")))
                 .andExpect(content().string(containsString("Lista de mora")))
                 .andExpect(content().string(containsString("Hoy:")));
     }

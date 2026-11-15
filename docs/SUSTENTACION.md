@@ -681,6 +681,32 @@ Pruebas al cerrar el hito: 285 (50 nuevas).
 La vista recorre cada cola con `th:each`. El iterador de `ColaPrioridad` extrae de una copia: las filas salen en
 orden y la cola no se vacía.
 
+**La agenda como tarjetas ("Esta semana").** La agenda sigue saliendo de la misma `ColaPrioridad` por fecha:
+solo cambió cómo se dibuja. En vez de una fila de tabla, cada cobro es una tarjeta con:
+
+- un calendario pequeño con el día de la semana (LUN, MAR, MIÉ...) o "HOY", y el número del día;
+- el cliente y "Préstamo #4 · cuota 4", más " · semanal" o " · quincenal" si no es mensual;
+- el valor, un botón de recordatorio por WhatsApp y un botón "Cobrar".
+
+Las tarjetas salen en el orden en que las entrega el iterador (la fecha más cercana primero). La vista no ordena
+nada: si se ordenara en la plantilla, la cola de prioridad dejaría de tener sentido.
+
+Piezas que intervienen:
+- `CobroAgendado` (aplicación) ganó el campo `frecuencia`, que viene del contrato. Así la vista sabe si el
+  préstamo es semanal o quincenal sin consultar otra vez el préstamo. El dominio no cambió.
+- `Textos` (adaptador web) arma los textos de la tarjeta (`diaCalendario`, `detalleCobro`) y el enlace
+  `https://wa.me/57<teléfono>?text=...` (`enlaceRecordatorio`). El texto va codificado para URL con `URLEncoder`,
+  igual que el del recibo.
+- "Cobrar" lleva a `/prestamos/{id}?monto=<valor de la cuota>#registrar-pago`: el ancla baja directo al
+  formulario y la plantilla del detalle escribe el monto con `th:value="${param.monto}"`. No hizo falta tocar
+  el controlador.
+- `AgendaWebTest` fija la fecha en el 16 nov 2026 y comprueba que la primera tarjeta es la de la fecha más cercana.
+
+Pregunta posible: **¿Por qué las tarjetas salen en orden si un montículo no está ordenado por dentro?**
+Porque `th:each` no recorre el arreglo del montículo: usa el iterador, que hace `extraer()` sobre una copia.
+Cada extracción entrega el mínimo en O(log n), así que recorrer toda la agenda cuesta O(n log n) y la cola
+original queda intacta.
+
 ### El recibo sin guardar recibos
 
 Un recibo junta dos cosas que vienen de lugares distintos:
@@ -725,7 +751,7 @@ dentro de `th:href` por seguridad.
 
 ### Cómo hacer la demo
 
-1. `./mvnw spring-boot:run` → panel: Marta y Laura en la agenda; Carlos en mora (con multas).
+1. `./mvnw spring-boot:run` → panel: Marta y Laura en la agenda ("Esta semana"); Carlos en mora (con multas).
 2. Clientes → buscar `1000000002` → ficha de Carlos con sus notas internas.
 3. Préstamo de Carlos → cronograma con cuotas "En mora" y multas → **Condonar** la multa de una cuota.
 4. **Registrar pago** → recibo → **Enviar por WhatsApp** (abre el mensaje ya escrito).
