@@ -134,10 +134,13 @@ confiable y cálida, no un banco frío. En cada pantalla lo primero que se ve es
   | `--gris-claro` | `#EEEEEE` | Etiqueta *Pagada*, fila resaltada, aviso de éxito y fondo de la barra de progreso |
 
   Todo texto cumple WCAG AA (≥ 4.5:1): el negro sobre blanco da 18.9:1 y el gris suave sobre el fondo, 7:1.
-- **La única excepción es el rojo de la mora**: `#B42318` para texto y borde, `#FDECEA` para fondos (6.6:1 sobre blanco,
+- **Dos excepciones de color.** La primera es el rojo de la mora: `#B42318` para texto y borde, `#FDECEA` para fondos (6.6:1 sobre blanco,
   5.8:1 sobre su fondo). Solo aparece en la tarjeta "En mora", los días de atraso, el estado *Mora* y las filas en mora,
   así que lo atrasado salta a la vista. Los demás estados se distinguen sin color: *Pagada* con fondo gris claro,
   *Con tiempo* con borde gris y *Pagada con retraso* con borde discontinuo. Cada etiqueta lleva el nombre del estado.
+- **La segunda es la terracota de hoy** (`--hoy`, `#9A3412`): solo pinta la cabecera "HOY" del calendario en la agenda
+  del panel ("Esta semana"), para que el cobro del día se distinga de un vistazo. Lleva texto blanco encima (7.3:1).
+  Los botones de la agenda siguen en blanco y negro: "Detalle" va relleno de negro si el cobro es hoy.
 - **Tipografías** (están en `static/fuentes`, con su licencia OFL, así que funcionan sin internet):
   - *Bricolage Grotesque* 800 para la marca, los títulos y las cifras grandes: es gruesa y con carácter, así que
     los montos importantes se leen de un vistazo.
