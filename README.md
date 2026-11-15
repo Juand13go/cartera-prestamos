@@ -122,22 +122,22 @@ Ideas clave:
 **Libreta — cartera de préstamos.** La idea es la libreta de cobro del prestamista, pero digital: ordenada,
 confiable y cálida, no un banco frío. En cada pantalla lo primero que se ve es la plata y lo atrasado.
 
-- **Paleta** (variables CSS en `:root`), cinco colores con nombres de libreta:
+- **Paleta: blanco y negro** (variables CSS en `:root`):
 
-  | Color | Valor | Uso |
+  | Variable | Valor | Uso |
   |---|---|---|
-  | Papel | `#F6F1E7` | Fondo de la página |
-  | Hoja | `#FFFDF8` | Superficies: tarjetas, tablas, formularios, barra superior y login |
-  | Renglón | `#E4DCC8` | Bordes, separadores, encabezados de tabla, renglón bajo los títulos y fondo de la etiqueta *Pagada* |
-  | Lápiz | `#5C574E` | Texto secundario: notas, etiquetas de campos, encabezados de tabla, menú inactivo y borde de los campos |
-  | Tinta | `#1C1B19` | Texto principal, marca, enlaces, botón principal (Tinta con texto Hoja) y página activa del menú |
+  | `--fondo` | `#FAFAFA` | Fondo de la página y encabezados de tabla |
+  | `--superficie` | `#FFFFFF` | Tarjetas, tablas, formularios, barra superior y login |
+  | `--texto` | `#111111` | Texto principal, marca, enlaces, botón principal y página activa del menú |
+  | `--suave` | `#555555` | Texto secundario: notas, etiquetas de campos, encabezados de tabla y menú inactivo |
+  | `--borde` | `#DDDDDD` | Bordes y separadores |
+  | `--gris-claro` | `#EEEEEE` | Etiqueta *Pagada*, fila resaltada, aviso de éxito y fondo de la barra de progreso |
 
-  Todo texto cumple WCAG AA (≥ 4.5:1): Tinta sobre Hoja da 16.9:1, Lápiz sobre Hoja 7:1 y el caso más justo,
-  Lápiz sobre Renglón, 5.25:1. El borde de los campos va en Lápiz porque un control necesita contraste 3:1.
-- **La única excepción es el rojo de la mora**: `#B42318` para texto y borde, `#FDECEA` para fondos (6.5:1 sobre Hoja,
+  Todo texto cumple WCAG AA (≥ 4.5:1): el negro sobre blanco da 18.9:1 y el gris suave sobre el fondo, 7:1.
+- **La única excepción es el rojo de la mora**: `#B42318` para texto y borde, `#FDECEA` para fondos (6.6:1 sobre blanco,
   5.8:1 sobre su fondo). Solo aparece en la tarjeta "En mora", los días de atraso, el estado *Mora* y las filas en mora,
-  así que lo atrasado salta a la vista. Los demás estados se distinguen sin color: *Pagada* con fondo Renglón,
-  *Con tiempo* con borde Lápiz y *Pagada con retraso* con borde discontinuo. Cada etiqueta lleva el nombre del estado.
+  así que lo atrasado salta a la vista. Los demás estados se distinguen sin color: *Pagada* con fondo gris claro,
+  *Con tiempo* con borde gris y *Pagada con retraso* con borde discontinuo. Cada etiqueta lleva el nombre del estado.
 - **Tipografías** (están en `static/fuentes`, con su licencia OFL, así que funcionan sin internet):
   - *Bricolage Grotesque* 800 para la marca, los títulos y las cifras grandes: es gruesa y con carácter, así que
     los montos importantes se leen de un vistazo.

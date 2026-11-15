@@ -29,15 +29,16 @@
     font-display: swap;
 }
 
-/* ---------- Paleta: la libreta de papel; el único color fuerte es el rojo de la mora ---------- */
+/* ---------- Paleta: blanco y negro; el único color es el rojo de la mora ---------- */
 :root {
-    --papel: #F6F1E7;     /* fondo de la página */
-    --hoja: #FFFDF8;      /* superficie: tarjetas, tablas, formularios, barra superior y login */
-    --renglon: #E4DCC8;   /* bordes, separadores, encabezados de tabla y fondo de PAGADA */
-    --lapiz: #5C574E;     /* texto secundario: notas, etiquetas, menú inactivo (7:1 sobre Hoja) */
-    --tinta: #1C1B19;     /* texto principal, enlaces y botón principal (17:1 sobre Hoja) */
+    --fondo: #FAFAFA;        /* fondo de la página */
+    --superficie: #FFFFFF;   /* tarjetas y tablas */
+    --texto: #111111;        /* texto, botones y enlaces */
+    --suave: #555555;        /* notas y etiquetas secundarias */
+    --borde: #DDDDDD;
+    --gris-claro: #EEEEEE;   /* cuota pagada, fila resaltada, aviso de éxito */
 
-    /* Mora: lo único en rojo, para que salte a la vista. 6.5:1 sobre Hoja y 5.8:1 sobre su fondo (WCAG AA). */
+    /* Mora: lo único en rojo, para que salte a la vista. Contraste WCAG AA (≥ 4.5:1). */
     --mora-texto: #B42318;
     --mora-fondo: #FDECEA;
 
@@ -52,21 +53,21 @@
 
 body {
     margin: 0;
-    background: var(--papel);
-    color: var(--tinta);
+    background: var(--fondo);
+    color: var(--texto);
     font-family: var(--letra-texto);
     font-size: 16px;
     line-height: 1.5;
 }
 
-/* Enlaces sin subrayado: se reconocen por la Tinta y el peso; al pasar el mouse pasan a Lápiz. */
-a { color: var(--tinta); font-weight: 700; text-decoration: none; }
-a:not(.boton):hover { color: var(--lapiz); text-decoration: none; }   /* los .boton tienen su propio hover */
+/* Enlaces sin subrayado: se reconocen por el negro y el peso; al pasar el mouse se aclaran. */
+a { color: var(--texto); font-weight: 700; text-decoration: none; }
+a:not(.boton):hover { color: var(--suave); text-decoration: none; }   /* los .boton tienen su propio hover */
 h1 a, h2 a { font-weight: inherit; }   /* dentro de un título, el enlace conserva el grosor del título */
 
 main { max-width: 1100px; margin: 0 auto; padding: 16px; }
 
-h1, h2 { font-family: var(--letra-titulos); font-weight: 800; color: var(--tinta); }
+h1, h2 { font-family: var(--letra-titulos); font-weight: 800; color: var(--texto); }
 h2 { margin: 20px 0 8px; font-size: 24px; line-height: 1.25; }
 
 /* h1 con un subrayado fino, como el renglón de un cuaderno. */
@@ -75,28 +76,28 @@ h1 {
     padding-bottom: 6px;
     font-size: 34px;
     line-height: 1.2;
-    border-bottom: 1px solid var(--renglon);
+    border-bottom: 1px solid var(--borde);
 }
 
 /* Montos: cifras del mismo ancho y alineadas a la derecha, para que las columnas cuadren. */
 .numero { text-align: right; font-variant-numeric: tabular-nums; }
 
-.nota { color: var(--lapiz); font-size: 15px; margin: 0 0 12px; }
-.vacio { color: var(--lapiz); font-style: italic; }
+.nota { color: var(--suave); font-size: 15px; margin: 0 0 12px; }
+.vacio { color: var(--suave); font-style: italic; }
 
-/* Cada bloque de la página es una hoja sobre el papel: borde fino, sin sombras. */
+/* Cada bloque de la página es una hoja blanca sobre el papel: borde fino, sin sombras. */
 section {
-    background: var(--hoja);
-    border: 1px solid var(--renglon);
+    background: var(--superficie);
+    border: 1px solid var(--borde);
     border-radius: 8px;
     padding: 4px 16px 16px;
     margin-bottom: 16px;
 }
 
-/* ---------- Barra superior: Hoja, letras en Tinta y una línea fina de Tinta abajo ---------- */
+/* ---------- Barra superior: blanca, letras negras y una línea fina negra abajo ---------- */
 .menu {
-    background: var(--hoja);
-    border-bottom: 1px solid var(--tinta);
+    background: var(--superficie);
+    border-bottom: 1px solid var(--texto);
 }
 /* Mismo ancho máximo y margen que main, para que la marca quede alineada con el título. */
 .menu-contenido {
@@ -110,7 +111,7 @@ section {
 }
 .menu-contenido.angosta { max-width: 680px; }   /* páginas del cliente */
 .menu a { text-decoration: none; }
-.menu .marca { font-family: var(--letra-titulos); font-weight: 800; font-size: 24px; color: var(--tinta); }
+.menu .marca { font-family: var(--letra-titulos); font-weight: 800; font-size: 24px; color: var(--texto); }
 
 /* Enlaces: ocupan todo el alto de la barra para que el subrayado del activo quede pegado al borde. */
 .menu nav { display: flex; gap: 20px; align-self: stretch; }
@@ -119,33 +120,33 @@ section {
     align-items: center;
     font-size: 16px;
     font-weight: 700;
-    color: var(--lapiz);
+    color: var(--suave);
     border-bottom: 2px solid transparent;   /* transparente para que el activo no salte al subrayarse */
 }
-.menu nav a:hover { color: var(--tinta); }
-/* Enlace activo: Tinta y subrayado de 2px, como un renglón de libreta. */
-.menu nav a.activo { color: var(--tinta); border-bottom-color: var(--tinta); }
+.menu nav a:hover { color: var(--texto); }
+/* Enlace activo: negro y subrayado de 2px, como un renglón de libreta. */
+.menu nav a.activo { color: var(--texto); border-bottom-color: var(--texto); }
 
 /* Fecha: etiqueta discreta empujada a la derecha. */
 .menu .hoy {
     margin-left: auto;
     padding: 2px 8px;
-    border: 1px solid var(--renglon);
+    border: 1px solid var(--borde);
     border-radius: 6px;
     font-size: 15px;
-    color: var(--lapiz);
+    color: var(--suave);
     white-space: nowrap;
 }
-.menu .hoy strong { font-weight: 700; color: var(--tinta); }
+.menu .hoy strong { font-weight: 700; color: var(--texto); }
 /* Fecha simulada en la demo: borde discontinuo para que nadie la confunda con la real. */
-.menu .hoy.simulada { border: 1px dashed var(--tinta); color: var(--tinta); }
-.menu .divisor { width: 1px; height: 24px; background: var(--renglon); }
+.menu .hoy.simulada { border: 1px dashed var(--texto); color: var(--texto); }
+.menu .divisor { width: 1px; height: 24px; background: var(--borde); }
 
 /* Nombre del usuario y Salir. Salir es un botón de formulario (POST) que se ve como enlace. */
 .menu .salir { display: flex; align-items: center; gap: 12px; min-width: 0; margin: 0; font-size: 15px; }
-.menu .salir .usuario { color: var(--lapiz); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.menu .salir button { padding: 0; border: none; background: none; color: var(--tinta); font-weight: 700; }
-.menu .salir button:hover { background: none; color: var(--lapiz); text-decoration: none; }
+.menu .salir .usuario { color: var(--suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu .salir button { padding: 0; border: none; background: none; color: var(--texto); font-weight: 700; }
+.menu .salir button:hover { background: none; color: var(--suave); text-decoration: none; }
 
 /* Menos de 720 px: marca y Salir arriba; enlaces y fecha en un segundo renglón. */
 @media (max-width: 720px) {
@@ -169,12 +170,12 @@ section {
     margin-bottom: 16px;
 }
 .tarjeta-resumen {
-    background: var(--hoja);
-    border: 1px solid var(--renglon);
+    background: var(--superficie);
+    border: 1px solid var(--borde);
     border-radius: 8px;
     padding: 14px 16px;
 }
-.tarjeta-resumen .rotulo { margin: 0; font-size: 15px; font-weight: 700; color: var(--lapiz); }
+.tarjeta-resumen .rotulo { margin: 0; font-size: 15px; font-weight: 700; color: var(--suave); }
 .tarjeta-resumen .cifra {
     margin: 2px 0 0;
     font-family: var(--letra-titulos);
@@ -182,9 +183,9 @@ section {
     font-size: 30px;
     line-height: 1.2;
     font-variant-numeric: tabular-nums;
-    color: var(--tinta);
+    color: var(--texto);
 }
-.tarjeta-resumen .detalle { margin: 4px 0 0; font-size: 15px; color: var(--lapiz); }
+.tarjeta-resumen .detalle { margin: 4px 0 0; font-size: 15px; color: var(--suave); }
 .tarjeta-resumen.alerta { border-color: var(--mora-texto); }
 .tarjeta-resumen.alerta .cifra { color: var(--mora-texto); }
 
@@ -193,22 +194,22 @@ section {
     display: inline-block;
     padding: 1px 10px;
     border-radius: 999px;
-    background: var(--papel);
-    color: var(--lapiz);
-    border: 1px solid var(--renglon);
+    background: var(--fondo);
+    color: var(--suave);
+    border: 1px solid var(--borde);
     font-size: 15px;
     font-weight: 700;
     line-height: 1.5;
     white-space: nowrap;
 }
 .etiqueta.estado-PAGADA, .etiqueta.activo {
-    background: var(--renglon); color: var(--tinta); border-color: transparent;
+    background: var(--gris-claro); color: var(--texto); border-color: transparent;
 }
 .etiqueta.estado-CON_TIEMPO {
-    background: var(--hoja); color: var(--tinta); border-color: var(--lapiz);
+    background: var(--superficie); color: var(--texto); border-color: var(--suave);
 }
 .etiqueta.estado-PAGADA_CON_RETRASO {
-    background: var(--hoja); color: var(--tinta); border: 1px dashed var(--tinta);
+    background: var(--superficie); color: var(--texto); border: 1px dashed var(--texto);
 }
 .etiqueta.estado-MORA, .etiqueta.mora {
     background: var(--mora-fondo); color: var(--mora-texto); border-color: var(--mora-texto);
@@ -218,15 +219,15 @@ section {
 /* En pantallas pequeñas la tabla se desplaza dentro de su caja, no toda la página. */
 .tabla { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
-th, td { padding: 9px 10px; border-bottom: 1px solid var(--renglon); text-align: left; white-space: nowrap; }
+th, td { padding: 9px 10px; border-bottom: 1px solid var(--borde); text-align: left; white-space: nowrap; }
 th {
-    background: var(--renglon);
+    background: var(--fondo);
     font-size: 15px;
     font-weight: 700;
-    color: var(--lapiz);
+    color: var(--suave);
 }
 tbody tr:last-child td { border-bottom: none; }
-tr.resaltada { background: var(--papel); }
+tr.resaltada { background: var(--gris-claro); }
 tr.en-mora { background: var(--mora-fondo); }   /* fondo rojo claro: la etiqueta dice "Mora" */
 
 /* ---------- Formularios y botones ---------- */
@@ -243,31 +244,31 @@ tr.en-mora { background: var(--mora-fondo); }   /* fondo rojo claro: la etiqueta
     margin-top: 12px;
 }
 /* Cada campo: texto de la etiqueta (un solo <span>), el campo y, si hay, la nota. */
-.formulario label { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 15px; font-weight: 700; color: var(--lapiz); }
+.formulario label { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 15px; font-weight: 700; color: var(--suave); }
 /* Todos los inputs y selects del formulario con el mismo ancho y el mismo alto. */
 .formulario label > input:not([type="checkbox"]),
 .formulario label > select { width: 100%; height: 40px; }
 .formulario label > textarea { width: 100%; }
-.formulario .ayuda { font-size: 15px; font-weight: 400; line-height: 1.3; color: var(--lapiz); }
+.formulario .ayuda { font-size: 15px; font-weight: 400; line-height: 1.3; color: var(--suave); }
 .formulario .ancho { grid-column: 1 / -1; }
 /* min-width: 0 porque un fieldset, por defecto, no se encoge más que su contenido. */
-.formulario fieldset { grid-column: 1 / -1; min-width: 0; border: 1px solid var(--renglon); border-radius: 8px; padding: 8px 12px 12px; }
-.formulario legend { font-weight: 700; color: var(--tinta); padding: 0 4px; }
-.formulario label.casilla { flex-direction: row; align-items: center; gap: 8px; color: var(--tinta); }
+.formulario fieldset { grid-column: 1 / -1; min-width: 0; border: 1px solid var(--borde); border-radius: 8px; padding: 8px 12px 12px; }
+.formulario legend { font-weight: 700; color: var(--texto); padding: 0 4px; }
+.formulario label.casilla { flex-direction: row; align-items: center; gap: 8px; color: var(--texto); }
 .en-linea { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
 input, select, textarea {
     font: inherit;
     font-weight: 400;
-    color: var(--tinta);
+    color: var(--texto);
     padding: 8px 10px;
-    border: 1px solid var(--lapiz);   /* Lápiz y no Renglón: el borde de un campo necesita contraste 3:1 */
+    border: 1px solid var(--borde);
     border-radius: 6px;
-    background: var(--hoja);
+    background: var(--superficie);
     max-width: 100%;
 }
 input:focus, select:focus, textarea:focus, button:focus-visible, .boton:focus-visible, a:focus-visible {
-    outline: 2px solid var(--tinta);
+    outline: 2px solid var(--texto);
     outline-offset: 2px;   /* contorno visible para quien navega con teclado */
 }
 
@@ -276,40 +277,40 @@ button, .boton {
     font: inherit;
     font-weight: 700;
     padding: 8px 16px;
-    border: 1px solid var(--tinta);
+    border: 1px solid var(--texto);
     border-radius: 6px;
-    background: var(--tinta);
-    color: var(--hoja);
+    background: var(--texto);
+    color: #fff;
     text-decoration: none;
     cursor: pointer;
 }
-button:hover, .boton:hover { background: var(--lapiz); border-color: var(--lapiz); }
-.boton.secundario, button.secundario { background: var(--hoja); color: var(--tinta); border-color: var(--tinta); }
-.boton.secundario:hover, button.secundario:hover { background: var(--papel); }
+button:hover, .boton:hover { background: #333333; border-color: #333333; }
+.boton.secundario, button.secundario { background: var(--superficie); color: var(--texto); border-color: var(--texto); }
+.boton.secundario:hover, button.secundario:hover { background: var(--gris-claro); }
 /* Acciones que no se pueden repetir sin pensar (deshacer un pago, cancelar el préstamo). */
-button.peligro { background: var(--hoja); color: var(--tinta); border: 2px solid var(--tinta); }
-button.peligro:hover { background: var(--papel); border-color: var(--tinta); }
+button.peligro { background: var(--superficie); color: var(--texto); border: 2px solid var(--texto); }
+button.peligro:hover { background: var(--gris-claro); border-color: var(--texto); }
 .acciones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 section form + form { margin-top: 0; }
 section > form.no-imprimir { margin-top: 12px; }
-form.cancelar-todo { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--renglon); }
+form.cancelar-todo { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--borde); }
 .tarjeta-resumen .detalle .etiqueta { margin-left: 4px; }
 
 /* ---------- Listas de datos (ficha del cliente, contrato) ---------- */
 .datos { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 12px 0 0; }
-.datos dt { color: var(--lapiz); }
+.datos dt { color: var(--suave); }
 .datos dd { margin: 0; }
 
 /* ---------- Mensajes después de una acción ---------- */
 .aviso { padding: 10px 14px; border-radius: 6px; margin: 0 0 16px; }
-.aviso.exito { background: var(--renglon); color: var(--tinta); }
-.aviso.error { background: var(--hoja); color: var(--tinta); border: 2px solid var(--tinta); }
+.aviso.exito { background: var(--gris-claro); color: var(--texto); }
+.aviso.error { background: var(--superficie); color: var(--texto); border: 2px solid var(--texto); }
 
 /* ---------- Login: una tarjeta centrada en la pantalla ---------- */
 .pagina-entrar main { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
 .entrar { width: 100%; max-width: 400px; padding: 28px 24px 24px; margin: 0; }
-.entrar .marca-grande { margin: 0; text-align: center; font-size: 40px; color: var(--tinta); }
-.entrar .subtitulo { margin: 6px 0 20px; text-align: center; color: var(--lapiz); }
+.entrar .marca-grande { margin: 0; text-align: center; font-size: 40px; color: var(--texto); }
+.entrar .subtitulo { margin: 6px 0 20px; text-align: center; color: var(--suave); }
 .entrar .fecha-entrar { margin: 16px 0 0; text-align: center; }
 button.bloque { width: 100%; padding: 10px 16px; }
 
@@ -321,7 +322,7 @@ main.angosta { max-width: 680px; }
 .datos.montos { grid-template-columns: 1fr auto; }
 .datos.montos dd { margin-bottom: 0; }
 
-/* ---------- Barra de progreso del portal del cliente: Tinta sobre Renglón ---------- */
+/* ---------- Barra de progreso del portal del cliente: negro sobre gris claro ---------- */
 .progreso { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
 .progreso progress {
     flex: 1;
@@ -330,20 +331,20 @@ main.angosta { max-width: 680px; }
     appearance: none;            /* sin esto el navegador usa su propio color */
     border: none;
     border-radius: 7px;
-    background: var(--renglon);
+    background: var(--gris-claro);
     overflow: hidden;
 }
 /* Cada navegador pinta la barra con su propio pseudoelemento. */
-.progreso progress::-webkit-progress-bar { background: var(--renglon); }
-.progreso progress::-webkit-progress-value { background: var(--tinta); }
-.progreso progress::-moz-progress-bar { background: var(--tinta); }
+.progreso progress::-webkit-progress-bar { background: var(--gris-claro); }
+.progreso progress::-webkit-progress-value { background: var(--texto); }
+.progreso progress::-moz-progress-bar { background: var(--texto); }
 
 /* ---------- Recibo: formato de comprobante ---------- */
 .recibo {
     max-width: 480px;
     margin: 8px auto 16px;
     padding: 20px 20px 16px;
-    border-top: 4px solid var(--tinta);
+    border-top: 4px solid var(--texto);
 }
 .recibo-cabeza {
     display: flex;
@@ -352,13 +353,13 @@ main.angosta { max-width: 680px; }
     align-items: flex-end;
     gap: 8px 16px;
     padding-bottom: 12px;
-    border-bottom: 1px dashed var(--renglon);
+    border-bottom: 1px dashed var(--borde);
 }
-.recibo-marca { margin: 0; font-family: var(--letra-titulos); font-weight: 800; font-size: 24px; color: var(--tinta); line-height: 1.1; }
-.recibo-sub { margin: 0; font-size: 15px; color: var(--lapiz); }
+.recibo-marca { margin: 0; font-family: var(--letra-titulos); font-weight: 800; font-size: 24px; color: var(--texto); line-height: 1.1; }
+.recibo-sub { margin: 0; font-size: 15px; color: var(--suave); }
 .recibo h1 { margin: 0; padding: 0; border: none; font-size: 20px; }
-.recibo-valor { margin: 16px 0; padding: 12px 0; text-align: center; border-top: 1px dashed var(--renglon); border-bottom: 1px dashed var(--renglon); }
-.recibo-valor .rotulo { margin: 0; font-size: 15px; font-weight: 700; color: var(--lapiz); }
+.recibo-valor { margin: 16px 0; padding: 12px 0; text-align: center; border-top: 1px dashed var(--borde); border-bottom: 1px dashed var(--borde); }
+.recibo-valor .rotulo { margin: 0; font-size: 15px; font-weight: 700; color: var(--suave); }
 .recibo-valor .cifra {
     margin: 0 0 4px;
     font-family: var(--letra-titulos);
@@ -370,8 +371,8 @@ main.angosta { max-width: 680px; }
 .desglose { list-style: none; margin: 0; padding: 0; }
 .desglose li { display: flex; align-items: baseline; gap: 8px; padding: 4px 0; }
 .desglose li > :first-child { flex: 1; display: flex; gap: 8px; }
-.desglose li > :first-child::after { content: ""; flex: 1; border-bottom: 1px dotted var(--lapiz); transform: translateY(-4px); }
-.recibo-pie { margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--renglon); }
+.desglose li > :first-child::after { content: ""; flex: 1; border-bottom: 1px dotted var(--suave); transform: translateY(-4px); }
+.recibo-pie { margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--borde); }
 .recibo-pie .saldo { font-size: 18px; }
 .botones-recibo { justify-content: center; }
 
