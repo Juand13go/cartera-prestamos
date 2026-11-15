@@ -82,7 +82,7 @@ class InterceptorRolesTest {
     void elLoginLaHojaDeEstilosYLasFuentesSonPublicos() throws Exception {
         mvc.perform(get("/login")).andExpect(status().isOk());
         mvc.perform(get("/css/estilos.css")).andExpect(status().isOk());
-        mvc.perform(get("/fuentes/fraunces-600.woff2")).andExpect(status().isOk());
+        mvc.perform(get("/fuentes/atkinson-hyperlegible-400.woff2")).andExpect(status().isOk());
     }
 
     // Cliente
