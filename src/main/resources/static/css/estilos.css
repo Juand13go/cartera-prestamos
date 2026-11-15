@@ -5,31 +5,26 @@
  */
 
 /* ---------- Tipografías (alojadas en /fuentes, licencia OFL; no dependen de internet) ---------- */
+/* Bricolage Grotesque 800: marca, títulos y cifras grandes. */
 @font-face {
-    font-family: "Fraunces";
-    src: url("../fuentes/fraunces-600.woff2") format("woff2");
-    font-weight: 600;
+    font-family: "Bricolage Grotesque";
+    src: url("../fuentes/bricolage-grotesque-800.woff2") format("woff2");
+    font-weight: 800;
     font-style: normal;
     font-display: swap;
 }
+/* Atkinson Hyperlegible: todo lo demás. Hecha para baja visión: 1, l, I y 0, O no se confunden. */
 @font-face {
-    font-family: "IBM Plex Sans";
-    src: url("../fuentes/ibm-plex-sans-400.woff2") format("woff2");
+    font-family: "Atkinson Hyperlegible";
+    src: url("../fuentes/atkinson-hyperlegible-400.woff2") format("woff2");
     font-weight: 400;
     font-style: normal;
     font-display: swap;
 }
 @font-face {
-    font-family: "IBM Plex Sans";
-    src: url("../fuentes/ibm-plex-sans-500.woff2") format("woff2");
-    font-weight: 500;
-    font-style: normal;
-    font-display: swap;
-}
-@font-face {
-    font-family: "IBM Plex Sans";
-    src: url("../fuentes/ibm-plex-sans-600.woff2") format("woff2");
-    font-weight: 600;
+    font-family: "Atkinson Hyperlegible";
+    src: url("../fuentes/atkinson-hyperlegible-700.woff2") format("woff2");
+    font-weight: 700;
     font-style: normal;
     font-display: swap;
 }
@@ -46,12 +41,13 @@
     --mora-texto: #B42318;
     --mora-fondo: #FDECEA;
 
-    --letra-titulos: "Fraunces", Georgia, "Times New Roman", serif;
-    --letra-texto: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --letra-titulos: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --letra-texto: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 
 /* ---------- Base ---------- */
+/* Tamaños: h1 34px, h2 24px, texto 16px. Ningún texto baja de 15px (notas, etiquetas, encabezados). */
 * { box-sizing: border-box; }
 
 body {
@@ -64,28 +60,28 @@ body {
 }
 
 /* Enlaces sin subrayado: se reconocen por la Tinta y el peso; al pasar el mouse pasan a Lápiz. */
-a { color: var(--tinta); font-weight: 500; text-decoration: none; }
+a { color: var(--tinta); font-weight: 700; text-decoration: none; }
 a:not(.boton):hover { color: var(--lapiz); text-decoration: none; }   /* los .boton tienen su propio hover */
 h1 a, h2 a { font-weight: inherit; }   /* dentro de un título, el enlace conserva el grosor del título */
 
 main { max-width: 1100px; margin: 0 auto; padding: 16px; }
 
-h1, h2 { font-family: var(--letra-titulos); font-weight: 600; color: var(--tinta); }
-h2 { margin: 20px 0 8px; font-size: 20px; }
+h1, h2 { font-family: var(--letra-titulos); font-weight: 800; color: var(--tinta); }
+h2 { margin: 20px 0 8px; font-size: 24px; line-height: 1.25; }
 
 /* h1 con un subrayado fino, como el renglón de un cuaderno. */
 h1 {
     margin: 8px 0 20px;
     padding-bottom: 6px;
-    font-size: 28px;
-    line-height: 1.25;
+    font-size: 34px;
+    line-height: 1.2;
     border-bottom: 1px solid var(--renglon);
 }
 
 /* Montos: cifras del mismo ancho y alineadas a la derecha, para que las columnas cuadren. */
 .numero { text-align: right; font-variant-numeric: tabular-nums; }
 
-.nota { color: var(--lapiz); font-size: 14px; margin: 0 0 12px; }
+.nota { color: var(--lapiz); font-size: 15px; margin: 0 0 12px; }
 .vacio { color: var(--lapiz); font-style: italic; }
 
 /* Cada bloque de la página es una hoja sobre el papel: borde fino, sin sombras. */
@@ -114,15 +110,15 @@ section {
 }
 .menu-contenido.angosta { max-width: 680px; }   /* páginas del cliente */
 .menu a { text-decoration: none; }
-.menu .marca { font-family: var(--letra-titulos); font-weight: 600; font-size: 24px; color: var(--tinta); }
+.menu .marca { font-family: var(--letra-titulos); font-weight: 800; font-size: 24px; color: var(--tinta); }
 
 /* Enlaces: ocupan todo el alto de la barra para que el subrayado del activo quede pegado al borde. */
 .menu nav { display: flex; gap: 20px; align-self: stretch; }
 .menu nav a {
     display: flex;
     align-items: center;
-    font-size: 15px;
-    font-weight: 500;
+    font-size: 16px;
+    font-weight: 700;
     color: var(--lapiz);
     border-bottom: 2px solid transparent;   /* transparente para que el activo no salte al subrayarse */
 }
@@ -136,19 +132,19 @@ section {
     padding: 2px 8px;
     border: 1px solid var(--renglon);
     border-radius: 6px;
-    font-size: 13px;
+    font-size: 15px;
     color: var(--lapiz);
     white-space: nowrap;
 }
-.menu .hoy strong { font-weight: 500; color: var(--tinta); }
+.menu .hoy strong { font-weight: 700; color: var(--tinta); }
 /* Fecha simulada en la demo: borde discontinuo para que nadie la confunda con la real. */
 .menu .hoy.simulada { border: 1px dashed var(--tinta); color: var(--tinta); }
 .menu .divisor { width: 1px; height: 24px; background: var(--renglon); }
 
 /* Nombre del usuario y Salir. Salir es un botón de formulario (POST) que se ve como enlace. */
-.menu .salir { display: flex; align-items: center; gap: 12px; min-width: 0; margin: 0; font-size: 14px; }
+.menu .salir { display: flex; align-items: center; gap: 12px; min-width: 0; margin: 0; font-size: 15px; }
 .menu .salir .usuario { color: var(--lapiz); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.menu .salir button { padding: 0; border: none; background: none; color: var(--tinta); font-weight: 500; }
+.menu .salir button { padding: 0; border: none; background: none; color: var(--tinta); font-weight: 700; }
 .menu .salir button:hover { background: none; color: var(--lapiz); text-decoration: none; }
 
 /* Menos de 720 px: marca y Salir arriba; enlaces y fecha en un segundo renglón. */
@@ -178,17 +174,17 @@ section {
     border-radius: 8px;
     padding: 14px 16px;
 }
-.tarjeta-resumen .rotulo { margin: 0; font-size: 13px; font-weight: 500; color: var(--lapiz); }
+.tarjeta-resumen .rotulo { margin: 0; font-size: 15px; font-weight: 700; color: var(--lapiz); }
 .tarjeta-resumen .cifra {
     margin: 2px 0 0;
     font-family: var(--letra-titulos);
-    font-weight: 600;
+    font-weight: 800;
     font-size: 30px;
     line-height: 1.2;
     font-variant-numeric: tabular-nums;
     color: var(--tinta);
 }
-.tarjeta-resumen .detalle { margin: 4px 0 0; font-size: 14px; color: var(--lapiz); }
+.tarjeta-resumen .detalle { margin: 4px 0 0; font-size: 15px; color: var(--lapiz); }
 .tarjeta-resumen.alerta { border-color: var(--mora-texto); }
 .tarjeta-resumen.alerta .cifra { color: var(--mora-texto); }
 
@@ -200,9 +196,9 @@ section {
     background: var(--papel);
     color: var(--lapiz);
     border: 1px solid var(--renglon);
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1.6;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.5;
     white-space: nowrap;
 }
 .etiqueta.estado-PAGADA, .etiqueta.activo {
@@ -225,8 +221,8 @@ table { width: 100%; border-collapse: collapse; }
 th, td { padding: 9px 10px; border-bottom: 1px solid var(--renglon); text-align: left; white-space: nowrap; }
 th {
     background: var(--renglon);
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 15px;
+    font-weight: 700;
     color: var(--lapiz);
 }
 tbody tr:last-child td { border-bottom: none; }
@@ -247,16 +243,16 @@ tr.en-mora { background: var(--mora-fondo); }   /* fondo rojo claro: la etiqueta
     margin-top: 12px;
 }
 /* Cada campo: texto de la etiqueta (un solo <span>), el campo y, si hay, la nota. */
-.formulario label { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 14px; font-weight: 500; color: var(--lapiz); }
+.formulario label { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 15px; font-weight: 700; color: var(--lapiz); }
 /* Todos los inputs y selects del formulario con el mismo ancho y el mismo alto. */
 .formulario label > input:not([type="checkbox"]),
 .formulario label > select { width: 100%; height: 40px; }
 .formulario label > textarea { width: 100%; }
-.formulario .ayuda { font-size: 13px; font-weight: 400; line-height: 1.3; color: var(--lapiz); }
+.formulario .ayuda { font-size: 15px; font-weight: 400; line-height: 1.3; color: var(--lapiz); }
 .formulario .ancho { grid-column: 1 / -1; }
 /* min-width: 0 porque un fieldset, por defecto, no se encoge más que su contenido. */
 .formulario fieldset { grid-column: 1 / -1; min-width: 0; border: 1px solid var(--renglon); border-radius: 8px; padding: 8px 12px 12px; }
-.formulario legend { font-weight: 600; color: var(--tinta); padding: 0 4px; }
+.formulario legend { font-weight: 700; color: var(--tinta); padding: 0 4px; }
 .formulario label.casilla { flex-direction: row; align-items: center; gap: 8px; color: var(--tinta); }
 .en-linea { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
@@ -278,7 +274,7 @@ input:focus, select:focus, textarea:focus, button:focus-visible, .boton:focus-vi
 button, .boton {
     display: inline-block;
     font: inherit;
-    font-weight: 500;
+    font-weight: 700;
     padding: 8px 16px;
     border: 1px solid var(--tinta);
     border-radius: 6px;
@@ -358,15 +354,15 @@ main.angosta { max-width: 680px; }
     padding-bottom: 12px;
     border-bottom: 1px dashed var(--renglon);
 }
-.recibo-marca { margin: 0; font-family: var(--letra-titulos); font-weight: 600; font-size: 24px; color: var(--tinta); line-height: 1.1; }
-.recibo-sub { margin: 0; font-size: 13px; color: var(--lapiz); }
+.recibo-marca { margin: 0; font-family: var(--letra-titulos); font-weight: 800; font-size: 24px; color: var(--tinta); line-height: 1.1; }
+.recibo-sub { margin: 0; font-size: 15px; color: var(--lapiz); }
 .recibo h1 { margin: 0; padding: 0; border: none; font-size: 20px; }
 .recibo-valor { margin: 16px 0; padding: 12px 0; text-align: center; border-top: 1px dashed var(--renglon); border-bottom: 1px dashed var(--renglon); }
-.recibo-valor .rotulo { margin: 0; font-size: 13px; font-weight: 500; color: var(--lapiz); }
+.recibo-valor .rotulo { margin: 0; font-size: 15px; font-weight: 700; color: var(--lapiz); }
 .recibo-valor .cifra {
     margin: 0 0 4px;
     font-family: var(--letra-titulos);
-    font-weight: 600;
+    font-weight: 800;
     font-size: 36px;
     font-variant-numeric: tabular-nums;
 }
@@ -382,7 +378,7 @@ main.angosta { max-width: 680px; }
 /* ---------- Celular (desde 360 px) ---------- */
 @media (max-width: 600px) {
     main { padding: 12px 12px 24px; }
-    h1 { font-size: 24px; }
+    h1 { font-size: 28px; }   /* 34px partiría los títulos largos en tres renglones a 360px */
     section { padding: 4px 12px 12px; }
     .menu-contenido { padding: 0 12px; }   /* igual que main en el celular */
     .datos { grid-template-columns: 1fr; gap: 0; }

@@ -122,19 +122,33 @@ Ideas clave:
 **Libreta — cartera de préstamos.** La idea es la libreta de cobro del prestamista, pero digital: ordenada,
 confiable y cálida, no un banco frío. En cada pantalla lo primero que se ve es la plata y lo atrasado.
 
+- **Paleta** (variables CSS en `:root`), cinco colores con nombres de libreta:
+
+  | Color | Valor | Uso |
+  |---|---|---|
+  | Papel | `#F6F1E7` | Fondo de la página |
+  | Hoja | `#FFFDF8` | Superficies: tarjetas, tablas, formularios, barra superior y login |
+  | Renglón | `#E4DCC8` | Bordes, separadores, encabezados de tabla, renglón bajo los títulos y fondo de la etiqueta *Pagada* |
+  | Lápiz | `#5C574E` | Texto secundario: notas, etiquetas de campos, encabezados de tabla, menú inactivo y borde de los campos |
+  | Tinta | `#1C1B19` | Texto principal, marca, enlaces, botón principal (Tinta con texto Hoja) y página activa del menú |
+
+  Todo texto cumple WCAG AA (≥ 4.5:1): Tinta sobre Hoja da 16.9:1, Lápiz sobre Hoja 7:1 y el caso más justo,
+  Lápiz sobre Renglón, 5.25:1. El borde de los campos va en Lápiz porque un control necesita contraste 3:1.
+- **La única excepción es el rojo de la mora**: `#B42318` para texto y borde, `#FDECEA` para fondos (6.5:1 sobre Hoja,
+  5.8:1 sobre su fondo). Solo aparece en la tarjeta "En mora", los días de atraso, el estado *Mora* y las filas en mora,
+  así que lo atrasado salta a la vista. Los demás estados se distinguen sin color: *Pagada* con fondo Renglón,
+  *Con tiempo* con borde Lápiz y *Pagada con retraso* con borde discontinuo. Cada etiqueta lleva el nombre del estado.
 - **Tipografías** (están en `static/fuentes`, con su licencia OFL, así que funcionan sin internet):
-  *Fraunces* para la marca, los títulos y las cifras grandes, porque es una serif cálida que recuerda la
-  letra de una libreta; *IBM Plex Sans* (400, 500, 600) para el resto, porque se lee bien en tamaños pequeños.
-  Los montos usan cifras de ancho fijo (`tabular-nums`) y van alineados a la derecha, para que las columnas cuadren.
-- **Paleta** (variables CSS en `:root`): tinta `#0F4C45` (verde petróleo, el color principal), papel `#F7F5F0`,
-  superficie `#FFFFFF`, texto `#1C2321`, texto suave `#5C6663` y bordes `#E2DED5`.
-- **Estados de cuota** (texto sobre fondo): pagada `#2D794C`/`#E7F3EC`, con tiempo `#3B5B7A`/`#E8EEF4`,
-  pagada con retraso `#926411`/`#FBF1DC`, mora `#B42318`/`#FDECEA`. Todos tienen contraste WCAG AA (≥ 4.5:1).
-  El verde y el ámbar se oscurecieron un poco frente a la propuesta inicial porque no llegaban a 4.5:1.
-  Cada etiqueta lleva el nombre del estado: el color acompaña, pero no es lo único que lo indica.
+  - *Bricolage Grotesque* 800 para la marca, los títulos y las cifras grandes: es gruesa y con carácter, así que
+    los montos importantes se leen de un vistazo.
+  - *Atkinson Hyperlegible* 400 y 700 para todo lo demás: la diseñó el Braille Institute para personas con baja
+    visión, y distingue bien el 1 de la l y la I, y el 0 de la O, lo cual importa en cédulas y montos.
+  - Tamaños: h1 34 px (28 px en el celular), h2 24 px, texto 16 px y ningún texto por debajo de 15 px.
+    Los montos usan cifras de ancho fijo (`tabular-nums`, que las dos fuentes soportan) y van alineados a la
+    derecha, para que las columnas cuadren.
 - **Sobriedad**: sin degradados, sin sombras fuertes, sin íconos de adorno y sin frameworks CSS ni librerías JS.
-  Cuando la fecha es simulada, la barra lo avisa sobre fondo ámbar. Todo se ve bien desde 360 px de ancho,
-  y el recibo se imprime solo como comprobante, sin barra ni botones.
+  Cuando la fecha es simulada, la barra lo avisa con un borde discontinuo. Todo se ve bien desde 360 px de ancho,
+  y el recibo se imprime solo como comprobante, en blanco y negro, sin barra ni botones.
 
 ## Tecnologías
 
