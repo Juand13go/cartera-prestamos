@@ -56,6 +56,22 @@ class PanelControladorTest {
     }
 
     @Test
+    void elPanelEnlazaALosPrestamosActivos() throws Exception {
+        mvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("href=\"/prestamos\"")))
+                .andExpect(content().string(containsString("Ver préstamos activos")));
+    }
+
+    @Test
+    void laListaDePrestamosActivosMuestraALosClientes() throws Exception {
+        mvc.perform(get("/prestamos"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Préstamos activos")))
+                .andExpect(content().string(containsString("Jhon Fredy Zapata Muñoz")));
+    }
+
+    @Test
     void laHojaDeEstilosEstaDisponible() throws Exception {
         mvc.perform(get("/css/estilos.css"))
                 .andExpect(status().isOk());

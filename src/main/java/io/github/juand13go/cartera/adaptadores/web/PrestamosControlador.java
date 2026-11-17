@@ -1,6 +1,7 @@
 package io.github.juand13go.cartera.adaptadores.web;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
@@ -16,10 +17,11 @@ import io.github.juand13go.cartera.aplicacion.ConsultarPrestamos;
 import io.github.juand13go.cartera.aplicacion.CrearPrestamo;
 import io.github.juand13go.cartera.aplicacion.CupoExcedidoException;
 import io.github.juand13go.cartera.aplicacion.DirectorioClientes;
+import io.github.juand13go.cartera.dominio.estructuras.ListaDoble;
 import io.github.juand13go.cartera.dominio.modelo.Cliente;
 import io.github.juand13go.cartera.dominio.modelo.Prestamo;
 
-/** Pantallas de préstamos. En este commit: crear un préstamo con su contrato. */
+/** Pantallas de préstamos: listar los activos y crear un préstamo con su contrato. */
 @Controller
 public class PrestamosControlador {
 
@@ -35,6 +37,30 @@ public class PrestamosControlador {
         this.crearPrestamo = crearPrestamo;
         this.consultarPrestamos = consultarPrestamos;
         this.montoMinimo = montoMinimo;
+    }
+
+    /**
+     * Lista los préstamos que no se han cerrado, del más reciente al más antiguo (el orden en que los
+     * entrega el repositorio). Cada fila busca a su cliente en la TablaHash del directorio: O(1) promedio.
+     */
+    @GetMapping("/prestamos")
+    public String activos(Model modelo) {
+        LocalDate hoy = consultarPrestamos.hoy();
+        ListaDoble<PrestamoActivo> activos = new ListaDoble<>();
+        BigDecimal carteraTotal = BigDecimal.ZERO;
+        for (Prestamo prestamo : consultarPrestamos.todos()) {
+            if (prestamo.estaCerrado()) {
+                continue;
+            }
+            Cliente cliente = directorio.buscar(prestamo.getCedulaCliente());
+            activos.agregarAlFinal(new PrestamoActivo(prestamo.getId(), cliente.getCedula(), cliente.getNombre(),
+                    prestamo.getContrato().getFechaDesembolso(), prestamo.getContrato().getCapital(),
+                    prestamo.capitalAdeudado(), prestamo.saldoTotal(hoy)));
+            carteraTotal = carteraTotal.add(prestamo.capitalAdeudado());
+        }
+        modelo.addAttribute("activos", activos);
+        modelo.addAttribute("carteraTotal", carteraTotal);
+        return "prestamos";
     }
 
     @GetMapping("/prestamos/nuevo")

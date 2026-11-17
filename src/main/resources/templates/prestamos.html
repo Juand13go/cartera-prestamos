@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragmentos :: cabeza('Préstamos activos')}"></head>
+<body>
+<header th:replace="~{fragmentos :: menu('panel')}"></header>
+
+<main>
+    <h1>Préstamos activos</h1>
+    <div th:replace="~{fragmentos :: mensajes}"></div>
+
+    <section>
+        <p class="nota" th:text="'Préstamos sin cerrar, del más reciente al más antiguo. Capital que deben entre todos: '
+                + ${@textos.pesos(carteraTotal)} + '.'">Préstamos sin cerrar. Capital que deben entre todos: $4.000.000.</p>
+        <p th:if="${activos.estaVacia()}" class="vacio">No hay préstamos activos.</p>
+        <div class="tabla" th:unless="${activos.estaVacia()}">
+            <table>
+                <thead>
+                <tr><th>Préstamo</th><th>Cliente</th><th>Desembolso</th><th class="numero">Capital prestado</th>
+                    <th class="numero">Capital que debe</th><th class="numero">Saldo hoy</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="activo : ${activos}">
+                    <td><a th:href="@{/prestamos/{id}(id=${activo.prestamoId()})}" th:text="'#' + ${activo.prestamoId()}">#1</a></td>
+                    <td><a th:href="@{/clientes/{c}(c=${activo.cedula()})}" th:text="${activo.nombreCliente()}">Laura Gómez</a></td>
+                    <td th:text="${#temporals.format(activo.fechaDesembolso(), 'dd/MM/yyyy')}">10/08/2026</td>
+                    <td class="numero" th:text="${@textos.pesos(activo.capitalPrestado())}">$2.000.000</td>
+                    <td class="numero" th:text="${@textos.pesos(activo.capitalAdeudado())}">$2.000.000</td>
+                    <td class="numero" th:text="${@textos.pesos(activo.saldoHoy())}">$2.160.000</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <p><a class="boton secundario" th:href="@{/}">Volver al panel</a></p>
+    </section>
+</main>
+</body>
+</html>

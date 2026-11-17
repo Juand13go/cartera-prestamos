@@ -93,6 +93,10 @@
             </table>
         </div>
     </section>
+
+    <!-- Lleva a la tabla con todos los préstamos sin cerrar (no solo los que vencen o están atrasados). -->
+    <p><a class="boton" th:href="@{/prestamos}"
+          th:text="'Ver préstamos activos (' + ${panel.prestamosActivos()} + ')'">Ver préstamos activos (2)</a></p>
 </main>
 </body>
 </html>
